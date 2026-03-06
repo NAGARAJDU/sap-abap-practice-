@@ -1,0 +1,124 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_SYNTAX.
+
+
+ data : gv_pos type i,  "integer
+        gv_len type i,
+        gv_num(5) type n.  "number
+
+data : gv_sal type p DECIMALS 2,
+       gv_tax type p DECIMALS 4 VALUE '18.00',
+       gv_tamt type p DECIMALS 2.
+
+
+CONSTANTS : gc_taxp type p DECIMALS 2 VALUE '18.00'.
+
+
+ data : gv_title(8) type c.
+
+ data : gv_fname type ZKFIRST_NAME,
+        gv_lname  type ZEMPLOYEE_MASTER-LAST_NAME,
+        gv_var.
+
+
+
+ write :/ 'Login user ->',    sy-uname.
+ write :/ 'Current Date ->',  sy-datum.
+ write :/ 'Current Time ->',  sy-uzeit.
+
+ write:/ 'Tcode ->', sy-tcode.
+
+
+
+
+*  gv_tax  = '20.00'.
+*  gc_taxp = '20.00'.
+*
+*
+*write :/ 'Tax % Var.->', gv_tax.
+*write :/ 'Tax % Constant->', gc_taxp.
+
+
+* gv_sal = '123456'.
+* gv_tax = '20.00'.
+*
+*gv_tamt = ( gv_sal / 100 ) * gv_tax.
+*
+*gv_tamt = gv_tamt * ( -1 ).
+
+
+*write :/ gv_sal.
+
+
+
+
+
+
+
+
+* gv_title = 'Mr.'.
+* gv_fname = 'Rohit'.
+* gv_lname = 'Sharma_S'.
+*
+* write : / gv_title.
+* write : / gv_fname.
+* write : / gv_lname.
+
+
+
+
+
+* gv_sal = '123456'.
+* gv_tax = '18.00'.
+*
+*gv_tamt = ( gv_sal / 100 ) * gv_tax.
+*
+*gv_tamt = gv_tamt * ( -1 ).
+*
+*
+*write :/ gv_sal.
+*write :/ gv_tax.
+*write :/ gv_tamt.
+
+
+* gv_pos = 123 * ( -1 ).
+* gv_num = 2312.
+*
+*
+* write : / 'Type I Value ->', gv_pos.
+* write : / 'Type N Value ->', gv_num.
+
+
+
+
+
+
+
+*
+*
+* gv_len = strlen( gv_lname ).
+*
+*
+* write : / gv_title.
+* write : / gv_fname.
+* write : / gv_lname.
+* write : / gv_pos.
+*
+* write :/ 'Length of gv_lname ->', gv_len.
+
+
+* uline.
+*
+* gv_title = 'Mr.'.
+* gv_fname = 'Mohammad'.
+* gv_lname = 'Shami'.
+* gv_pos   = 11.
+*
+* write : / gv_title.
+* write : / gv_fname.
+* write : / gv_lname.
+*  write : / gv_pos.

@@ -1,0 +1,99 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_INTERNAL_TABLES
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zabap_syntax_internal_tables.
+
+TYPES : BEGIN OF tp_emp,
+          employee_id TYPE zkemp_id,
+          title       TYPE zktitle,
+          first_name  TYPE 	zkfirst_name,
+          last_name   TYPE zklast_name,
+          full_name(50) type c,
+          doj         TYPE psg_datjo,
+          department  TYPE zkdepart,
+          ctc         TYPE dmbtr,
+        END OF tp_emp.
+
+
+
+DATA : lt_mara     TYPE TABLE OF mara,
+       wa_mara     TYPE mara,
+       gt_employee TYPE STANDARD TABLE OF tp_emp,
+       gs_employee TYPE tp_emp.
+
+
+
+**** append****
+  clear : gs_employee.
+          gs_employee-employee_id   = 'ZKT01'.
+          gs_employee-title         =  'Mr.'.
+          gs_employee-first_name    = 'Zafar'.
+          gs_employee-last_name     = 'Karnalkar'.
+          gs_employee-doj           = '20210701'.
+          gs_employee-DEPARTMENT    = 'IT-SAP'.
+          gs_employee-ctc           = '1000000.00'.
+          APPEND gs_employee to gt_employee.
+  clear : gs_employee.
+
+  clear : gs_employee.
+          gs_employee-employee_id   = 'ZKT02'.
+          gs_employee-title         =  'Mr.'.
+          gs_employee-first_name    = 'Murli'.
+          gs_employee-last_name     = 'Jadhav'.
+          gs_employee-doj           = '20210801'.
+          gs_employee-DEPARTMENT    = 'IT-INFRA'.
+          gs_employee-ctc           = '500000.00'.
+          APPEND gs_employee to gt_employee.
+  clear : gs_employee.
+
+  clear : gs_employee.
+          gs_employee-employee_id   = 'ZKT03'.
+          gs_employee-title         =  'Mr.'.
+          gs_employee-first_name    = 'Nikhil'.
+          gs_employee-last_name     = 'Jamble'.
+          gs_employee-doj           = '20200801'.
+          gs_employee-DEPARTMENT    = 'IT-SAP'.
+          gs_employee-ctc           = '1200000.00'.
+          APPEND gs_employee to gt_employee.
+  clear : gs_employee.
+
+
+  clear : gs_employee.
+          gs_employee-employee_id   = 'ZKT04'.
+          gs_employee-title         =  'Mr.'.
+          gs_employee-first_name    = 'Praveen'.
+          gs_employee-last_name     = 'Kamle'.
+          gs_employee-doj           = '20200801'.
+          gs_employee-DEPARTMENT    = 'ACCOUNTS'.
+          gs_employee-ctc           = '400000.00'.
+          APPEND gs_employee to gt_employee.
+  clear : gs_employee.
+
+ BREAK-POINT.
+
+          gs_employee-employee_id   = 'ZKT05'.
+          gs_employee-title         =  'Mr.'.
+          gs_employee-first_name    = 'Kishor'.
+          gs_employee-last_name     = 'More'.
+          gs_employee-doj           = '20190801'.
+          gs_employee-DEPARTMENT    = 'ACCOUNTS'.
+          gs_employee-ctc           = '700000.00'.
+          insert gs_employee INTO TABLE gt_employee.
+  clear : gs_employee.
+
+
+          gs_employee-employee_id   = 'ZKT06'.
+          gs_employee-title         =  'Mrs.'.
+          gs_employee-first_name    = 'Saba'.
+          gs_employee-last_name     = 'Khan'.
+          gs_employee-doj           = '20180801'.
+          gs_employee-DEPARTMENT    = 'HR'.
+          gs_employee-ctc           = '100000.00'.
+          insert gs_employee INTO gt_employee index 1.
+  clear : gs_employee.
+
+
+  BREAK-POINT.
+

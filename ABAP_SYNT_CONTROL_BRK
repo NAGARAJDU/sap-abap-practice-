@@ -1,0 +1,64 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_CONTROL_BRK
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_SYNTAX_CONTROL_BRK.
+
+
+data : gt_ekpo type STANDARD TABLE OF ekpo,
+       gs_ekpo type ekpo.
+
+
+data : gv_ebeln type ekpo-ebeln.
+
+
+select-OPTIONS : s_ebeln for gv_ebeln.
+
+
+
+START-OF-SELECTION.
+
+  select * from ekpo into TABLE gt_ekpo WHERE ebeln in s_ebeln.
+
+
+  sort gt_ekpo by ebeln ebelp.
+
+  loop at gt_ekpo into gs_ekpo.
+
+  at FIRST.
+     write :/2 'PO Number', 15 'Item No.', 30 'Material Code', 50 'Description', 90 'Net Value'.
+  ENDAT.
+
+
+  at NEW ebeln.
+   uline.
+   write :/ 'New PO' COLOR 5.
+  ENDAT.
+
+
+  write :/2 gs_ekpo-ebeln, 15 gs_ekpo-ebelp, 30 gs_ekpo-matnr, 50 gs_ekpo-txz01, 90 gs_ekpo-netwr.
+
+
+  at END OF ebeln.
+  sum.
+  write :/50 'Total value of PO' COLOR 3, gs_ekpo-NETWR.
+
+  ENDAT.
+
+ AT LAST.
+ uline.
+ skip 2.
+
+ sum.
+ write :/50 'Total value of all PO'  COLOR 7, gs_ekpo-netwr.
+
+ ENDAT.
+
+  clear : gs_ekpo.
+  endloop.
+
+
+
+
+end-of-SELECTION.

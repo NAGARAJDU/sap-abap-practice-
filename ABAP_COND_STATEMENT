@@ -1,0 +1,51 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_COND_STATEMENTS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_COND_STATEMENTS.
+
+
+
+PARAMETERS : p_sal type i,
+             p_exp type i.
+
+
+START-OF-SELECTION.
+
+   if p_sal > 1000000 and p_exp > 5.
+       write :/ '1.5% Bonus'.
+   elseif p_sal > 1000000.
+       write :/ '1% Bonus'.
+    elseif p_sal > 750000.
+     write :/ '2% Bonus'.
+    elseif p_sal > 500000.
+      write :/ '3% Bonus'.
+   else.
+     write :/ '5% Bonus'.
+   endif.
+
+skip 2.
+   write :/ 'End Of If-Else'.
+
+skip 2.
+
+    CASE p_exp.
+
+    WHEN 0.
+      write :/ 'Frehser'.
+
+    WHEN 1 or 2 or 3.
+      write :/ 'Junior'.
+
+    WHEN 4.
+      write :/ 'Senior'.
+
+    WHEN OTHERS.
+      write :/ 'Team Lead'.
+    ENDCASE.
+
+
+
+
+end-of-SELECTION.

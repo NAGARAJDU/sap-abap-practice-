@@ -1,0 +1,40 @@
+*&---------------------------------------------------------------------*
+*& Report ZK_MY_FIRST_PRG
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZK_MY_FIRST_PRG NO STANDARD PAGE HEADING.
+
+*Comment line
+*
+*
+*
+*
+*write : 'My_First ABAP Program', / 'In SAP S/4 HANA'.   "comment
+*write :/ 'Welcome to ABAP'.
+
+uline.
+write : 5 'Name' Color 3 INTENSIFIED OFF, 20 sy-vline, 'Role' Color 7, 35 sy-vline, 'Email ID' Color 3 INTENSIFIED ON, 60 sy-vline.
+uline.
+write : /5 'Zafar', 20 sy-vline, 'ABAP', 35 sy-vline, 'zafar@gmail.com', 60 sy-vline.
+uline.
+write : /5 'Nikhil' color 3 INTENSIFIED OFF INVERSE ON, 20 sy-vline, 'Fiori', 35 sy-vline, 'Nikhil@gmail.com', 60 sy-vline.
+uline.
+write : /5 'Raj', 20 sy-vline, 'Basis', 35 sy-vline, 'raj@gmail.com', 60 sy-vline.
+uline.
+
+FORMAT COLOR 5.
+write :/ 'End of Record'.
+write : / 'Total Number of Records'.
+FORMAT COLOR OFF.
+uline.
+
+FORMAT COLOR 3.
+write :/ 'End of Record'.
+write : / 'Total Number of Records'.
+FORMAT COLOR OFF.
+uline.
+
+write :/ 'End of Record'.
+write : / 'Total Number of Records'.
+uline.

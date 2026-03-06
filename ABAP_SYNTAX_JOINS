@@ -1,0 +1,65 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_JOINS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_SYNTAX_JOINS.
+
+
+types : begin of tp_mara,
+         matnr type mara-matnr,
+         mtart type mara-mtart,
+         maktx type makt-maktx,
+         werks type marc-werks,
+        end of tp_mara.
+
+data : gt_mara type table of tp_mara,
+       gs_mara type tp_mara.
+
+data : gv_matnr type mara-matnr,
+       gv_werks type marc-werks.
+
+
+select-OPTIONS : s_matnr for gv_matnr,
+                 s_werks for gv_werks.
+
+
+
+START-OF-SELECTION.
+
+    select a~matnr, a~mtart,
+           b~maktx,
+           c~werks
+           from mara as a INNER join makt as b
+           on a~matnr = b~matnr
+           inner join marc as c
+           on a~matnr = c~matnr
+           into TABLE @gt_mara
+           WHERE a~matnr in @s_matnr
+             and b~spras = @sy-langu
+             and c~werks in @s_werks.
+
+
+     loop at gt_mara into gs_mara.
+
+     write :/5 gs_mara-matnr, 25 gs_mara-mtart, 40 gs_mara-maktx, 75 gs_mara-werks.
+
+     clear : gs_mara.
+     endloop.
+
+
+*   select a~matnr, a~mtart,
+*          b~werks
+*          from mara as a left OUTER join marc as b
+*          on a~matnr = b~matnr
+*          into TABLE @gt_mara
+*          WHERE a~matnr in @s_matnr
+*            and b~werks in @s_werks.
+
+*     cl_demo_output=>display( gt_mara ).
+
+
+
+
+
+end-of-SELECTION.

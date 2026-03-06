@@ -1,0 +1,60 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_LOOPS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_SYNTAX_LOOPS.
+
+
+
+
+
+PARAMETERS : p_date type sy-datum OBLIGATORY DEFAULT sy-datum.
+
+
+
+START-OF-SELECTION.
+      perform do_endo.
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form do_endo
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM do_endo .
+
+     do 10 TIMES.
+
+     if sy-index = 4.
+        p_date = p_date + 1.
+        CONTINUE.
+     endif.
+
+    write :/ 'Date', p_date, sy-index.
+
+     p_date = p_date + 1.
+
+
+     ENDDO.
+
+uline.
+skip 2.
+
+    while p_date <= sy-datum.
+
+    write :/ 'Date', p_date, sy-index.
+    p_date = p_date + 1.
+
+
+    ENDWHILE.
+
+
+
+
+
+
+ENDFORM.

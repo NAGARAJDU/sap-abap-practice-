@@ -1,0 +1,77 @@
+*&---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_DB_OPERATIONS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT zabap_syntax_db_operations.
+
+TABLES : kna1.
+
+
+TYPES : BEGIN OF tp_kna1,
+          kunnr   TYPE kna1-kunnr,
+          name1 TYPE kna1-name1,
+          land1         TYPE kna1-land1,
+          ort01         TYPE kna1-ort01,
+          regio         TYPE kna1-regio,
+          pstlz         TYPE kna1-pstlz,
+          additional,
+        END OF tp_kna1,
+
+        begin of tp_city,
+         ort01         TYPE kna1-ort01,
+        end of tp_city.
+
+DATA : gt_kna1 TYPE TABLE OF tp_kna1,
+       gs_kna1 TYPE tp_kna1,
+       gt_city type TABLE of tp_city,
+       gs_city type tp_city.
+
+
+SELECT-OPTIONS : s_kunnr FOR kna1-kunnr.
+*PARAMETERS : p_kunnr TYPE kna1-kunnr.
+
+START-OF-SELECTION.
+
+   select DISTINCT ort01 from kna1 into TABLE gt_city WHERE kunnr in s_kunnr.
+
+
+    loop at gt_city into gs_city.
+
+    write :/20 gs_city-ort01.
+
+    clear : gs_city.
+    endloop.
+
+
+*  SELECT kunnr name1 land1 ort01 pstlz regio FROM kna1 INTO CORRESPONDING FIELDS OF TABLE gt_kna1 WHERE kunnr IN s_kunnr.
+*  SELECT SINGLE kunnr name1 land1 ort01 pstlz regio FROM kna1 INTO CORRESPONDING FIELDS OF gs_kna1 WHERE land1 =  'US'.
+*  SELECT kunnr name1 land1 ort01 pstlz regio FROM kna1 INTO CORRESPONDING FIELDS OF TABLE gt_kna1 UP TO 20 ROWS.
+
+*  WRITE :/5 gs_kna1-kunnr, 20 gs_kna1-name1, 55 gs_kna1-land1, 65 gs_kna1-ort01.
+
+*  ENDSELECT.
+
+*  IF sy-subrc = 0.
+*
+*    SORT gt_kna1 BY kunnr.
+*
+*    LOOP AT gt_kna1 INTO gs_kna1.
+*
+*
+*      WRITE :/5 gs_kna1-kunnr, 20 gs_kna1-name1, 55 gs_kna1-land1, 65 gs_kna1-ort01.
+*
+*
+*
+*      CLEAR : gs_kna1.
+*
+*    ENDLOOP.
+
+
+
+*  ENDIF.
+
+
+
+
+END-OF-SELECTION.

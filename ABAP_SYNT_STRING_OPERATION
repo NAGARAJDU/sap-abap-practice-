@@ -1,0 +1,112 @@
+*&   ---------------------------------------------------------------------*
+*& Report ZABAP_SYNTAX_STRING_OPERATIONS
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZABAP_SYNTAX_STRING_OPERATIONS.
+
+
+data : string1 type char50 VALUE 'Hello',
+       string2 type char50 VALUE 'ABAP',
+       string3 type char50 VALUE 'Dev.',
+       string4 type char100,
+       gv_list type string VALUE 'ZKT01,Mr.,Zafar,Karnalkar,SAP,20180719',
+       gt_list type TABLE of string,
+       gs_list like LINE OF gt_list,
+       gv_del type char1 VALUE ',',
+       gv_org_string type string VALUE 'SAP ABAP PROG',
+       gv_sub1 type string,
+       gv_sub2 type string,
+       gv_len type i,
+       gv_amount type dmbtr value '1500.50',
+       gv_text_amount(20).
+
+
+
+ CONDENSE gv_org_string.
+ write : / gv_org_string.
+
+
+
+TRANSLATE gv_org_string to LOWER CASE.
+
+ write : / gv_org_string.
+
+
+TRANSLATE gv_org_string to UPPER CASE.
+
+ write : / gv_org_string.
+
+*FIND ALL OCCURRENCES OF 'ABAP' in gv_org_string MATCH COUNT gv_len.
+*
+*write : / gv_len.
+*
+*
+*REPLACE all OCCURRENCES OF 'ABAP' in gv_org_string with 'ABAP on HANA'.
+* write : / gv_org_string.
+
+* shift gv_org_string by 4 PLACES LEFT.
+*
+*  write : / gv_org_string.
+
+
+
+*  write gv_amount to gv_text_amount.
+*
+*  write : / gv_amount.
+*
+*  write : / gv_text_amount.
+*
+*  CONDENSE gv_text_amount.
+*   write : / gv_text_amount.
+
+*   write :/ 'original value of string -> ', gv_org_string.
+*
+*   CONDENSE gv_org_string.
+*
+*   write :/ 'after condense value of string -> ', gv_org_string.
+
+**    gv_len = strlen( gv_org_string ).
+**
+*    write :/ gv_len.
+
+
+*      gv_sub1 = gv_org_string+0(3).
+*
+*   write :/ 'Sub String 1 ->', gv_sub1.
+*
+*
+*      gv_sub2 = gv_org_string+9(11).
+*
+*   write :/ 'Sub String 2 ->', gv_sub2.
+
+
+*   split gv_list at gv_del into TABLE gt_list.
+*
+*
+*     loop at gt_list into gs_list.
+*     write :/ gs_list.
+*
+*     clear : gs_list.
+*     endloop.
+*
+*
+*BREAK-POINT.
+
+*  CONCATENATE string1 string2 string3 into string4 SEPARATED BY '_'.
+*
+*  write :/ 'Concatenate result ->', string4.
+*
+*uline .
+**    write :/ 'String Values before clear ->', string1, string2, string3.
+*uline.
+*
+*  clear : string1, string2, string3.
+*
+**  write :/ 'String Values after clear -> ', string1, string2, string3.
+*
+*uline.
+*
+*  split string4 at  '_' into string1 string2 string3.
+*
+*    write :/ 'String Values -> ', string1, string2, string3.
