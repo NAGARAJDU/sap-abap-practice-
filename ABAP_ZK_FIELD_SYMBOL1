@@ -1,0 +1,42 @@
+*&---------------------------------------------------------------------*
+*& Report ZK_DEMO_FIELD_SYMBOL1
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZK_DEMO_FIELD_SYMBOL1.
+
+
+data : gv_num type i VALUE 25,
+       gv_awkey  type bkpf-awkey.
+
+FIELD-SYMBOLS : <fs_num> type i.
+FIELD-SYMBOLS : <fs_char> type c.
+
+
+  gv_awkey = '100000300000082023'.
+
+
+  ASSIGN gv_awkey+4(10) TO <fs_char>.
+
+  if <fs_char> is ASSIGNED.
+
+ write :/ 'Value of FS <fs_char> -> ', <fs_char>.
+
+  endif.
+
+
+*write :/ 'Value of Variable gv_num -> ', gv_num.
+*
+* ASSIGN gv_num to <fs_num>.
+*
+* if <fs_num> is ASSIGNED.
+*
+*write :/ 'Value of FS <fs_num> -> ', <fs_num>.
+*
+* <fs_num> = 13.
+*
+*write :/ 'Value of Variable gv_num through FS-> ', gv_num.
+*
+*  UNASSIGN <fs_num>.
+*
+* endif.
