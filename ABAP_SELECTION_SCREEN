@@ -1,0 +1,97 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_SELECTION_SCREEN
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_SELECTION_SCREEN.
+
+tables : bsad.
+
+
+SELECTION-SCREEN begin of BLOCK b1 with FRAME TITLE text-001.
+  select-OPTIONS : s_kunnr for bsad-kunnr,
+                   s_bukrs for bsad-bukrs no INTERVALS no-EXTENSION,
+                   s_cpudt for bsad-cpudt .
+*SELECTION-SCREEN SKIP.
+*  PARAMETERS : p_bukrs type bukrs DEFAULT '1500',
+*               p_cpudt type bsid-cpudt DEFAULT sy-datum.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+SELECTION-SCREEN BEGIN OF BLOCK b2 with FRAME TITLE text-002.
+  PARAMETERS : r_open RADIOBUTTON GROUP grp1,
+               r_clear RADIOBUTTON GROUP grp1,
+               r_all RADIOBUTTON GROUP grp1 DEFAULT 'X'.
+SELECTION-SCREEN SKIP.
+ PARAMETERS : r_dtl RADIOBUTTON GROUP grp2,
+              r_summ RADIOBUTTON GROUP grp2.
+SELECTION-SCREEN end of BLOCK b2.
+
+SELECTION-SCREEN begin of BLOCK b3 with FRAME TITLE text-003.
+  PARAMETERS : c_c1 as CHECKBOX  DEFAULT 'X',
+               c_c2 as CHECKBOX,
+               c_c3 AS CHECKBOX DEFAULT 'X'.
+
+
+SELECTION-SCREEN end of BLOCK b3.
+
+
+
+
+INITIALIZATION.
+
+    s_cpudt-sign    = 'I'.
+    s_cpudt-option  = 'BT'.
+    s_cpudt-low     = sy-datum - 30.
+    s_cpudt-high    = sy-datum.
+    append s_cpudt.
+
+
+
+START-OF-SELECTION.
+
+
+     if c_c1 = 'X'.
+        MESSAGE 'Normal line items are selected' TYPE 'I'.
+     endif.
+
+
+     if c_c2 is NOT INITIAL.
+        MESSAGE 'spl GL line items are selected' TYPE 'I'.
+     endif.
+
+     if c_c3 = 'X'.
+        MESSAGE 'Noted line items are selected' TYPE 'I'.
+     endif.
+
+*   if r_open = 'X'.
+*      message 'Open radio button is selected' TYPE 'I'.
+*
+*   elseif r_clear = 'X'.
+*      message 'Cleared items radio button is selected' TYPE 'I'.
+*
+*   elseif r_all = 'X'.
+*     message 'All items radio button is selected' TYPE 'I'.
+*   endif.
+*
+*
+*   if r_dtl is NOT INITIAL.
+*      message 'Detail report radio button is selected' TYPE 'I'.
+*   elseif r_summ is NOT INITIAL.
+*      message 'summary radio button is selected' TYPE 'I'.
+*   endif.
+
+*"select options
+*  select * from bsid into TABLE @data(gt_bsid) WHERE kunnr in @s_kunnr
+*                                                 and bukrs in @s_bukrs
+*                                                 and cpudt in @s_cpudt.
+*
+*
+*"select options
+*  select * from bsid into TABLE @data(gt_bsid1) WHERE bukrs = @p_bukrs
+*                                                 and cpudt = @p_cpudt.
+
+BREAK-POINT.
+
+
+end-OF-SELECTION.

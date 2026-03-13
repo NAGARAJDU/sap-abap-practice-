@@ -1,0 +1,46 @@
+*&---------------------------------------------------------------------*
+*& Report ZK_DEMO_FIELD_SYMBOL2
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZK_DEMO_FIELD_SYMBOL2.
+
+*data : gt_makt type STANDARD TABLE OF makt,
+*       gs_makt type makt.
+*
+*
+*FIELD-SYMBOLS : <fs_makt> type makt.
+
+
+select * from makt into TABLE @data(gt_makt) UP TO 10 ROWS WHERE spras = @sy-langu.
+
+
+
+ loop at gt_makt ASSIGNING FIELD-SYMBOL(<fs_makt>).
+
+ CONCATENATE '1-' <fs_makt>-maktx into <fs_makt>-maktx SEPARATED BY space.
+
+
+ endloop.
+
+
+  BREAK-POINT.
+
+*  loop at gt_makt into gs_makt.
+*
+*  CONCATENATE '1-' gs_makt-maktx into gs_makt-maktx SEPARATED BY space.
+*
+*  MODIFY gt_makt from gs_makt TRANSPORTING maktx.
+*
+*
+*  clear : gs_makt.
+*  ENDLOOP.
+
+
+*  loop at gt_makt ASSIGNING <fs_makt>.
+*
+*  CONCATENATE '1-' <fs_makt>-maktx into <fs_makt>-maktx SEPARATED BY space.
+*
+*
+*  clear : gs_makt.
+*  ENDLOOP.
