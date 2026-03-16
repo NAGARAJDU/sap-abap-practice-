@@ -1,0 +1,75 @@
+REPORT ZUD_ABAP_MODULARIZATION NO STANDARD PAGE HEADING.
+
+
+include ZUD_ABAP_MODULARIZATION_TOP.
+include ZUD_ABAP_MODULARIZATION_HD.
+
+SELECTION-SCREEN begin of BLOCK b1 WITH FRAME TITLE text-001.
+  PARAMETERS : P_AMOUNT TYPE MAXBT,
+               P_DIS    TYPE MAXBT.
+SELECTION-SCREEN end of BLOCK b1.
+
+DEFINE PRINT_values.
+
+write:/10  &1, 30 &2.
+
+end-of-DEFINITION.
+
+
+START-OF-SELECTION.
+     write :/ 'initial values' COLOR 5.
+     perform amt_to_word USING P_AMOUNT CHANGING gv_word.
+     perform amt_to_word_1 USING p_amount CHANGING gv_word.
+
+     print_values P_AMOUNT GV_WORD.
+
+     P_AMOUNT = ( P_AMOUNT / 100 ) * ( 100 - P_DIS ).
+
+     write:/ 'After Discount' COLOR 3.
+
+     perform amt_to_word USING P_AMOUNT CHANGING gv_word.
+     print_values P_AMOUNT GV_WORD.
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*&      Form  AMT_TO_WORD
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_P_AMOUNT  text
+*      <--P_GV_WORD  text
+*----------------------------------------------------------------------*
+FORM AMT_TO_WORD  USING    P_P_AMOUNT
+                  CHANGING P_GV_WORD.
+
+
+CALL FUNCTION 'HR_IN_CHG_INR_WRDS'
+  EXPORTING
+    AMT_IN_NUM               = P_P_AMOUNT
+ IMPORTING
+   AMT_IN_WORDS             = P_GV_WORD
+ EXCEPTIONS
+   DATA_TYPE_MISMATCH       = 1
+   OTHERS                   = 2
+          .
+IF SY-SUBRC <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  AMT_TO_WORD_1
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*      -->P_P_AMOUNT  text
+*      <--P_GV_WORD  text
+*----------------------------------------------------------------------*
+FORM AMT_TO_WORD_1  USING    P_P_AMOUNT
+                    CHANGING P_GV_WORD.
+
+
+
+
+ENDFORM.

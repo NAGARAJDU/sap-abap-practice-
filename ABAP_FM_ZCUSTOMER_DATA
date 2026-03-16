@@ -1,0 +1,51 @@
+FUNCTION ZCUSTOMER_DATA.
+*"----------------------------------------------------------------------
+*"*"Local Interface:
+*"  IMPORTING
+*"     VALUE(IP_KUNNR) TYPE  KUNNR
+*"  EXPORTING
+*"     REFERENCE(EP_NAME) TYPE  NAME1_GP
+*"     REFERENCE(EP_MOBILE) TYPE  CHAR15
+*"     REFERENCE(EP_EMAIL) TYPE  CHAR75
+*"     REFERENCE(ES_CUST_DATA) TYPE  ZCUST_DATA
+*"  TABLES
+*"      OT_VBAK STRUCTURE  VBAK OPTIONAL
+*"      OT_VBRK STRUCTURE  VBRK OPTIONAL
+*"----------------------------------------------------------------------
+
+ data : gs_kna1 type kna1,    "customer details
+        gs_adr2 type adr2,    "mobile numbers
+        gs_adr6 type adr6.    "email ids
+
+
+ select SINGLE * from kna1 into gs_kna1 WHERE kunnr = ip_kunnr.
+
+ if sy-subrc = 0.
+
+
+ select SINGLE * from adr2 into gs_adr2 WHERE addrnumber = gs_kna1-adrnr.
+ select SINGLE * from adr6 into gs_adr6 WHERE addrnumber = gs_kna1-adrnr.
+
+
+     ep_name     = gs_kna1-name1.
+     ep_mobile   = gs_adr2-tel_number.
+     ep_email    = gs_adr6-smtp_addr.
+
+
+     ES_CUST_DATA-kunnr    = gs_kna1-kunnr.
+     ES_CUST_DATA-name     = gs_kna1-name1.
+     ES_CUST_DATA-mobile   = gs_adr2-tel_number.
+     ES_CUST_DATA-email    = gs_adr6-smtp_addr.
+
+
+  select * from vbak into TABLE ot_vbak WHERE kunnr = gs_kna1-kunnr.
+  select * from vbrk into TABLE ot_vbrk WHERE kunag = gs_kna1-kunnr.
+
+
+
+
+ endif.
+
+
+
+ENDFUNCTION.
