@@ -1,0 +1,48 @@
+*&---------------------------------------------------------------------*
+*& Report ZFI_PAYMENT_TAGGING
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZFI_PAYMENT_TAGGING.
+
+
+data : gs_payment type zfi_payments,
+       gv_type(40).
+
+PARAMETERS : IP_BUKRS TYPE  BUKRS,
+             IP_BELNR TYPE  BELNR_D,
+             IP_GJAHR TYPE  GJAHR,
+             IP_DMBTR TYPE  DMBTR.
+
+
+
+START-OF-SELECTION.
+
+  CALL FUNCTION 'ZFI_PAYMENT_TOWARDS'
+   EXPORTING
+     IP_BUKRS         = IP_BUKRS
+     IP_BELNR         = IP_BELNR
+     IP_GJAHR         = IP_GJAHR
+     IP_DMBTR         = IP_DMBTR
+   IMPORTING
+     ES_PAYMENT       = gs_payment
+            .
+
+
+  if gs_payment-flat is NOT INITIAL.
+     gv_type = 'Flat'.
+  elseif gs_payment-stamp_duty is NOT INITIAL.
+     gv_type = 'Stamp duty'.
+  elseif gs_payment-maintenance is NOT INITIAL.
+     gv_type = 'maintenance'.
+  else.
+     gv_type = 'Others'.
+  endif.
+
+
+WRITE : / gv_type.
+
+
+
+
+end-of-SELECTION.

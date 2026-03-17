@@ -1,0 +1,38 @@
+FUNCTION ZFI_PAYMENT_TOWARDS.
+*"----------------------------------------------------------------------
+*"*"Local Interface:
+*"  IMPORTING
+*"     VALUE(IP_BUKRS) TYPE  BUKRS OPTIONAL
+*"     VALUE(IP_BELNR) TYPE  BELNR_D OPTIONAL
+*"     VALUE(IP_GJAHR) TYPE  GJAHR OPTIONAL
+*"     VALUE(IP_DMBTR) TYPE  DMBTR OPTIONAL
+*"  EXPORTING
+*"     VALUE(ES_PAYMENT) TYPE  ZFI_PAYMENTS
+*"----------------------------------------------------------------------
+
+  if ip_bukrs is NOT INITIAL and
+     ip_belnr is NOT INITIAL and
+     ip_gjahr is NOT INITIAL and
+     ip_dmbtr is NOT INITIAL.
+
+  select SINGLE * from ZFI_PAYMENTS into gs_payment WHERE bukrs = ip_bukrs
+                                                      and belnr = ip_belnr
+                                                      and gjahr = ip_gjahr.
+   if sy-subrc <> 0.
+      gs_payment-bukrs   = ip_bukrs.
+      gs_payment-belnr   = ip_belnr.
+      gs_payment-gjahr   = ip_gjahr.
+      gs_payment-dmbtr   = ip_dmbtr.
+    endif.
+
+
+      call SCREEN 0100 STARTING AT 10 2.
+
+      es_payment = gs_payment.
+
+  endif.
+
+
+
+
+ENDFUNCTION.

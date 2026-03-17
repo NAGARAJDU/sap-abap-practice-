@@ -1,0 +1,50 @@
+FUNCTION-POOL ZKABAP.                       "MESSAGE-ID ..
+
+* INCLUDE LZKABAPD...                        " Local class definition
+
+
+data : gs_payment type ZFI_PAYMENTS.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+ SET PF-STATUS 'PF1'.
+ SET TITLEBAR 'T1'.
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  EXIT  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit INPUT.
+        set SCREEN 0.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0100 INPUT.
+
+    case sy-ucomm.
+
+    when 'BACK' or 'EXIT' or 'CANCEL'.
+       set SCREEN 0.
+
+    when 'SAVE'.
+
+       gs_payment-created_by  = sy-uname.
+       gs_payment-created_on  = sy-datum.
+       gs_payment-time        = sy-uzeit.
+
+       modify ZFI_PAYMENTS from gs_payment.
+       set SCREEN 0.
+
+    ENDCASE.
+
+
+  clear : sy-ucomm.
+ENDMODULE.
