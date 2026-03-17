@@ -1,0 +1,75 @@
+*&---------------------------------------------------------------------*
+*& Report ZCUSTOMER_DATA
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZCUSTOMER_DATA.
+
+tables : kna1.
+
+
+data : EP_NAME  TYPE  NAME1_GP,
+       EP_MOBILE  TYPE  CHAR15,
+       EP_EMAIL TYPE  CHAR75,
+       gs_data type zcust_data,
+
+       gt_vbak type STANDARD TABLE OF vbak,
+       gt_vbrk type STANDARD TABLE OF vbrk.
+
+
+
+PARAMETERS : p_kunnr type kna1-kunnr.
+
+
+
+
+START-OF-SELECTION.
+
+     perform get_print.
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_print
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_print .
+
+  CALL FUNCTION 'ZCUSTOMER_DATA'
+    EXPORTING
+      ip_kunnr           = p_kunnr
+   IMPORTING
+*     EP_NAME            =
+*     EP_MOBILE          =
+*     EP_EMAIL           =
+     ES_CUST_DATA       =  gs_data
+   TABLES
+     OT_VBAK            = gt_vbak
+     OT_VBRK            = gt_vbrk
+          .
+
+write : / gs_data-NAME, 40 gs_data-MOBILE, 60 gs_data-EMAIL.
+
+*  CALL FUNCTION 'ZCUSTOMER_DATA'
+*    EXPORTING
+*      ip_kunnr        = p_kunnr
+*   IMPORTING
+*     EP_NAME         = EP_NAME
+*     EP_MOBILE       = EP_MOBILE
+*     EP_EMAIL        = EP_EMAIL.
+*
+*
+*
+*
+*  write : / EP_NAME, 40 EP_MOBILE, 60 EP_EMAIL.
+
+
+
+
+
+
+ENDFORM.
