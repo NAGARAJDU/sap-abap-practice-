@@ -1,0 +1,94 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_RFC_CALL
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_RFC_CALL.
+
+tables : vbak.
+
+
+data : gt_header   type STANDARD TABLE OF zuvbak,
+       gt_items    type STANDARD TABLE OF zuvbap,
+       gt_schedule type STANDARD TABLE OF zuvbep.
+
+
+ data : gv_header_msg type char100,
+        gv_item_msg type char100,
+        gv_schedule_msg TYPE char100.
+
+
+SELECTION-SCREEN begin of BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_vbeln for vbak-vbeln OBLIGATORY.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+
+START-OF-SELECTION.
+      perform get_and_post_data.
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_and_post_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_and_post_data .
+
+"header data
+
+   select vbeln erdat kunnr from vbak into corresponding fields of table gt_header where vbeln in s_vbeln.
+
+"line item data
+   select vbeln posnr matnr arktx kwmeng vrkme from vbap into corresponding fields of table gt_items where vbeln in s_vbeln.
+
+"schedule line
+  select VBELN POSNR ETENR EDATU WMENG VRKME from vbep into CORRESPONDING FIELDS OF TABLE gt_schedule WHERE vbeln in s_vbeln.
+
+
+"call rfc
+    CALL FUNCTION 'ZDEMO_RFC'
+         DESTINATION 'NONE' STARTING NEW TASK 'TK1'
+*     IMPORTING
+*       EP_HEADER_MSG         = gv_header_msg
+*       EP_ITEM_MSG           = gv_item_msg
+*       EP_SCHEDULE_MSG       = gv_schedule_msg
+     TABLES
+       IT_HEADER             =  gt_header
+       IT_ITEMS              =  gt_items
+       IT_SCHEDULE           =  gt_schedule
+     EXCEPTIONS
+       HEADER_FAIL           = 1
+       ITEM_FAIL             = 2
+       SCHEDULE_FAIL         = 3
+       OTHERS                = 4
+              .
+    IF sy-subrc <> 0.
+* Implement suitable error handling here
+
+    case sy-subrc.
+
+    when 1.
+      write : / 'Header updation Failed'.
+    when 2.
+       write : / 'Item updation failed'.
+    when 3.
+       write : / 'Schedule line updation failed'.
+
+    ENDCASE.
+
+
+    ENDIF.
+
+  write :/ gv_header_msg.
+  write :/ gv_item_msg.
+  write :/ gv_schedule_msg.
+
+
+
+
+ENDFORM.
