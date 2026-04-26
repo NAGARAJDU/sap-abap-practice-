@@ -1,0 +1,129 @@
+*&---------------------------------------------------------------------*
+*& Report  ZDEMO_HANA_RFC_CALL
+*&
+*&---------------------------------------------------------------------*
+*&
+*&
+*&---------------------------------------------------------------------*
+
+REPORT  ZDEMO_HANA_RFC_CALL.
+
+tables : vbak.
+
+
+types : begin of tp_vbak,
+            MANDT type MANDT,
+            VBELN type VBELN_VA,
+            ERDAT type ERDAT,
+            KUNNR type KUNNR,
+        end of tp_vbak,
+
+        begin of tp_vbap,
+          MANDT type MANDT,
+          VBELN type VBELN,
+          POSNR type POSNR,
+          MATNR(40),
+          ARKTX type ARKTX,
+          KWMENG type KWMENG,
+          VRKME type VRKME,
+          end of tp_vbap,
+
+          BEGIN OF tp_vbep,
+            MANDT type MANDT,
+            VBELN type VBELN,
+            POSNR type POSNR,
+            ETENR type ETENR,
+            EDATU type EDATU,
+            WMENG type WMENG,
+            VRKME type VRKME,
+          end of tp_vbep.
+
+data : gt_header type STANDARD TABLE OF tp_vbak,
+       gt_items type STANDARD TABLE OF tp_vbap,
+       gt_schedule type STANDARD TABLE OF tp_vbep.
+
+
+data : EP_HEADER_MSG TYPE	CHAR100,
+       EP_ITEM_MSG TYPE	CHAR100,
+       EP_SCHEDULE_MSG TYPE	CHAR100.
+
+
+
+SELECT-OPTIONS : s_vbeln for vbak-vbeln.
+
+
+
+START-OF-SELECTION.
+
+   perform call_rfc.
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*&      Form  CALL_RFC
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM CALL_RFC .
+
+
+"header data
+   select vbeln erdat kunnr from vbak into corresponding fields of table gt_header where vbeln in s_vbeln.
+
+"line item data
+   select vbeln posnr matnr arktx kwmeng vrkme from vbap into corresponding fields of table gt_items where vbeln in s_vbeln.
+
+"schedule line
+  select VBELN POSNR ETENR EDATU WMENG VRKME from vbep into CORRESPONDING FIELDS OF TABLE gt_schedule WHERE vbeln in s_vbeln.
+
+
+"call the RFC of hana system
+      CALL FUNCTION 'ZECCDEMO_RFC'
+         DESTINATION 'ZKHANA1' STARTING NEW TASK 'TK1'
+*     IMPORTING
+*         EP_HEADER_MSG   = EP_HEADER_MSG
+*         EP_ITEM_MSG     = EP_ITEM_MSG
+*         EP_SCHEDULE_MSG = EP_SCHEDULE_MSG
+      TABLES
+         IT_HEADER       = gt_header
+         IT_ITEMS        = gt_items
+         IT_SCHEDULE     = gt_schedule
+      EXCEPTIONS
+       HEADER_FAIL           = 1
+       ITEM_FAIL             = 2
+       SCHEDULE_FAIL         = 3
+       OTHERS                = 4
+              .
+
+     If sy-subrc <> 0.
+
+    case sy-subrc.
+
+    when 1.
+      write : / 'Header updation Failed'.
+    when 2.
+       write : / 'Item updation failed'.
+    when 3.
+       write : / 'Schedule line updation failed'.
+
+    when 4.
+       write : / 'Other exceptions'.
+
+    ENDCASE.
+
+
+
+     endif.
+
+
+
+  write :/ ep_header_msg.
+  write :/ ep_item_msg.
+  write :/ ep_schedule_msg.
+
+
+
+ENDFORM.                    " CALL_RFC
