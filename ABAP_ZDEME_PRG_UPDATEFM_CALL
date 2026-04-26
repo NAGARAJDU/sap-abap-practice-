@@ -1,0 +1,82 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_RFC_CALL
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_UPDATEFM_CALL.
+
+tables : vbak.
+
+
+data : gt_header   type STANDARD TABLE OF zuvbak,
+       gt_items    type STANDARD TABLE OF zuvbap,
+       gt_schedule type STANDARD TABLE OF zuvbep.
+
+
+SELECTION-SCREEN begin of BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_vbeln for vbak-vbeln OBLIGATORY.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+      perform get_and_post_data.
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_and_post_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_and_post_data .
+
+"header data
+
+   select vbeln erdat kunnr from vbak into corresponding fields of table gt_header where vbeln in s_vbeln.
+
+"line item data
+   select vbeln posnr matnr arktx kwmeng vrkme from vbap into corresponding fields of table gt_items where vbeln in s_vbeln.
+
+"schedule line
+  select VBELN POSNR ETENR EDATU WMENG VRKME from vbep into CORRESPONDING FIELDS OF TABLE gt_schedule WHERE vbeln in s_vbeln.
+
+CALL FUNCTION 'ZDEMO_UPDATEFM' IN UPDATE TASK
+ TABLES
+   IT_HEADER           =  GT_HEADER
+   IT_ITEMS            =  GT_ITEMS
+   IT_SCHEDULE         =  GT_SCHEDULE
+ EXCEPTIONS
+   HEADER_FAIL         = 1
+   ITEM_FAIL           = 2
+   SCHEDULE_FAIL       = 3
+   OTHERS              = 4
+          .
+IF sy-subrc <> 0.
+* Implement suitable error handling here
+
+    case sy-subrc.
+
+    when 1.
+      write : / 'Header updation Failed'.
+    when 2.
+       write : / 'Item updation failed'.
+    when 3.
+       write : / 'Schedule line updation failed'.
+
+    ENDCASE.
+
+
+ENDIF.
+
+   COMMIT WORK.
+
+
+
+
+BREAK-POINT.
+
+
+ENDFORM.

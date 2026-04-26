@@ -1,0 +1,52 @@
+FUNCTION ZDEMO_UPDATEFM.
+*"----------------------------------------------------------------------
+*"*"Update Function Module:
+*"
+*"*"Local Interface:
+*"  TABLES
+*"      IT_HEADER STRUCTURE  ZUVBAK OPTIONAL
+*"      IT_ITEMS STRUCTURE  ZUVBAP OPTIONAL
+*"      IT_SCHEDULE STRUCTURE  ZUVBEP OPTIONAL
+*"  EXCEPTIONS
+*"      HEADER_FAIL
+*"      ITEM_FAIL
+*"      SCHEDULE_FAIL
+*"----------------------------------------------------------------------
+
+  if IT_HEADER[] is NOT INITIAL.
+
+  try.
+      insert zuvbak from table it_header[].
+  catch cx_root.
+      RAISE header_fail.
+  endtry.
+
+  endif.
+
+  if it_items[] is NOT INITIAL.
+
+  try.
+      insert zuvbap from table it_items[].
+  catch cx_root.
+       RAISE item_fail.
+
+  endtry.
+
+  endif.
+
+
+  if it_schedule[] is NOT INITIAL.
+
+  try.
+      insert zuvbep from table it_schedule[].
+  catch cx_root.
+      RAISE schedule_fail.
+  endtry.
+
+
+
+  endif.
+
+
+
+ENDFUNCTION.
