@@ -1,0 +1,163 @@
+REPORT ZUD_MATERIAL_STOCK.
+
+tables : marc, mbew.
+
+"type declaration
+TYPES : BEGIN OF TP_MARC,
+         MATNR TYPE MATNR,
+         WERKS TYPE MARC-WERKS,
+        END OF TP_MARC,
+
+        begin of tp_makt,
+         matnr type matnr,
+         SPRAS type SPRAS,
+         MAKTX type MAKTX,
+        end of tp_makt,
+
+        begin of tp_mbew,
+          MATNR  type MATNR,
+          BWKEY  type BWKEY,
+          LBKUM  type LBKUM,
+          SALK3  type SALK3,
+        end of tp_mbew,
+
+        begin of tp_list,
+        "from marc
+          MATNR TYPE MATNR,
+          WERKS TYPE MARC-WERKS,
+        "makt
+          SPRAS type SPRAS,
+          MAKTX type MAKTX,
+         "mbew
+          BWKEY  type BWKEY,
+          LBKUM  type LBKUM,
+          SALK3  type SALK3,
+          end of tp_list.
+
+
+"internal table and work area
+ data : gt_marc type STANDARD TABLE OF tp_marc,
+        gs_marc type tp_marc,
+        gt_makt TYPE STANDARD TABLE OF tp_makt,
+        gs_makt type tp_makt,
+        gt_mbew TYPE STANDARD TABLE OF tp_mbew,
+        gs_mbew type tp_mbew,
+        gt_list type STANDARD TABLE OF tp_list,
+        gs_list type tp_list.
+
+
+
+SELECTION-SCREEN begin of BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_matnr for marc-matnr,
+                   s_bwkey for mbew-bwkey OBLIGATORY.
+  PARAMETERS : R_R1 RADIOBUTTON GROUP GRP,  "different select quey
+               R_R2 RADIOBUTTON GROUP GRP.  "join
+
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+     perform get_data.
+     perform display_data.
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM GET_DATA.
+
+   if R_R1 is NOT INITIAL.
+
+"select plant specific material
+   select matnr werks from marc into TABLE gt_marc
+   WHERE matnr in s_matnr
+     and werks in S_BWKEY.
+
+  if gt_marc[] is NOT INITIAL.
+
+  select matnr spras maktx from makt INTO TABLE gt_makt
+  FOR ALL ENTRIES IN gt_marc WHERE matnr = gt_marc-matnr.
+
+  select matnr bwkey lbkum salk3 from mbew into TABLE gt_mbew
+  FOR ALL ENTRIES IN gt_marc WHERE matnr = gt_marc-matnr
+                               and bwkey = gt_marc-werks.
+
+  endif.
+
+  else.
+
+  select marc~matnr marc~werks
+         makt~spras makt~maktx
+         mbew~bwkey mbew~lbkum mbew~salk3
+         from marc as marc INNER JOIN makt as makt on marc~matnr = makt~matnr
+         INNER JOIN mbew as mbew on  marc~matnr = mbew~matnr
+         into CORRESPONDING FIELDS OF TABLE gt_list
+         WHERE marc~matnr in S_MATNR
+           and marc~werks in S_BWKEY
+           and mbew~BWKEY in s_bwkey.
+
+
+  endif.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM DISPLAY_DATA .
+
+  if r_r1 is NOT INITIAL.
+
+  loop at gt_marc into gs_marc.
+
+  at FIRST.
+  write:/2 'Material Code', 20 'Materal Description', 50 'Valuation Area', 70 'Total Stock', 90 'Value of the stock'.
+  uline.
+  endat.
+
+  clear : gs_makt.
+  read TABLE gt_makt into gs_makt with key matnr = gs_marc-matnr.
+
+  clear : gs_mbew.
+  read TABLE gt_mbew into gs_mbew with key matnr = gs_marc-matnr
+                                           bwkey = gs_marc-werks.
+
+  write:/2 gs_marc-matnr, 20 gs_makt-maktx, 50 gs_mbew-bwkey, 70 gs_mbew-LBKUM, 90 gs_mbew-SALK3.
+
+
+
+  clear : gs_marc, gs_makt, gs_mbew.
+  endloop.
+
+ else.
+
+  loop at gt_list into gs_list.
+
+  at FIRST.
+  write:/2 'Material Code', 20 'Materal Description', 50 'Valuation Area', 70 'Total Stock', 90 'Value of the stock'.
+  uline.
+  endat.
+
+  write:/2 gs_list-matnr, 20 gs_list-maktx, 50 gs_list-bwkey, 70 gs_list-LBKUM, 90 gs_list-SALK3.
+
+
+
+  clear : gs_list.
+  endloop.
+
+
+ endif.
+
+
+ENDFORM.
