@@ -1,0 +1,298 @@
+REPORT ZUD_VENDOR_MASTER.
+
+*tables : lfa1.s
+
+TYPES : BEGIN OF TP_LFA1,
+          LIFNR TYPE LIFNR,
+          NAME1 TYPE LFA1-NAME1,
+          ADRNR TYPE ADRNR,
+          BUKRS TYPE BUKRS,
+        END OF TP_LFA1,
+
+"address
+        BEGIN OF TP_ADRC,
+          ADDRNUMBER TYPE AD_ADDRNUM,
+          DATE_FROM  TYPE AD_DATE_FR,
+          NATION     TYPE AD_NATION,
+          CITY1      TYPE AD_CITY1,
+          POST_CODE1 TYPE AD_PSTCD1,
+          STREET     TYPE AD_STREET,
+          COUNTRY    TYPE LAND1,
+          REGION     TYPE REGIO,
+        END OF TP_ADRC,
+
+"for email address
+        begin of tp_adr6,
+          ADDRNUMBER type AD_ADDRNUM,
+          PERSNUMBER type AD_PERSNUM,
+          DATE_FROM type AD_DATE_FR,
+          CONSNUMBER type AD_CONSNUM,
+          SMTP_ADDR type AD_SMTPADR,
+        end of tp_adr6,
+
+        begin of tp_adr2,
+          ADDRNUMBER type AD_ADDRNUM,
+          PERSNUMBER type AD_PERSNUM,
+          DATE_FROM type AD_DATE_FR,
+          CONSNUMBER type AD_CONSNUM,
+          TEL_NUMBER type AD_TLNMBR,
+        end of tp_adr2,
+
+        begin of tp_list,
+          sr type i,
+          LIFNR TYPE LIFNR,
+          NAME1 TYPE LFA1-NAME1,
+          BUKRS TYPE BUKRS,
+          CITY1      TYPE AD_CITY1,
+          POST_CODE1 TYPE AD_PSTCD1,
+          STREET     TYPE AD_STREET,
+          Country   type T005T-LANDX50,
+          State   type T005U-BEZEI,
+          Email1 type ADR6-SMTP_ADDR,
+          Email2 type ADR6-SMTP_ADDR,
+          Mobile1 type ADR2-TEL_NUMBER,
+          Mobile2 type ADR2-TEL_NUMBER,
+        end of tp_list.
+
+data : gt_lfa1 type STANDARD TABLE OF tp_lfa1,
+       gs_lfa1 type tp_lfa1,
+       gt_adrc type STANDARD TABLE OF tp_adrc,
+       gs_adrc type tp_adrc,
+       gt_adr6 type STANDARD TABLE OF tp_adr6,
+       gs_adr6 type tp_adr6,
+       gt_adr2 type STANDARD TABLE OF tp_adr2,
+       gs_adr2 type tp_adr2,
+       gt_list type STANDARD TABLE OF tp_list,
+       gs_list type tp_list,
+       gt_t005t type STANDARD TABLE OF t005t,
+       gs_t005t type t005t,
+       gt_t005u type STANDARD TABLE OF t005u,
+       gs_t005u type t005u.
+
+data : sd_lifnr type lfa1-lifnr,
+       sd_bukrs type lfb1-bukrs.
+
+data : gv_cnt  type i,
+       gv_cnt1 type i.
+
+data : gv_cursor(30),
+       gv_value TYPE LIFNR.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_lifnr for SD_LIFNR,
+                   s_bukrs for SD_BUKRS NO INTERVALS NO-EXTENSION.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+   perform get_data.
+   perform build_data.
+   perform display_output.
+
+end-of-SELECTION.
+
+    AT LINE-SELECTION.
+
+    CLEAR : GV_CURSOR, GV_VALUE.
+    GET CURSOR FIELD GV_CURSOR VALUE GV_VALUE.
+
+    IF GV_CURSOR = 'GS_LIST-LIFNR' AND GV_VALUE IS NOT INITIAL.
+
+    CALL FUNCTION 'CONVERSION_EXIT_ALPHA_INPUT'
+      EXPORTING
+        INPUT         = GV_VALUE
+     IMPORTING
+       OUTPUT        = GV_VALUE.
+
+
+
+    CLEAR : gs_list.
+    read TABLE gt_list into gs_list with key lifnr = gv_value.
+
+    write:/5 'Vendor ID :', 20 gs_list-lifnr.
+    write:/5 'Name :', 20 gs_list-NAME1.
+
+    ENDIF.
+
+   AT USER-COMMAND.
+
+
+   CASE SY-UCOMM.
+
+   WHEN 'XK03'.
+     message 'You have click on XK03' TYPE 'I'.
+   WHEN 'SE38'.
+     CALL TRANSACTION 'SE38'.
+   ENDCASE.
+
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM GET_DATA .
+
+*    SET PF-STATUS 'ZPF'.
+
+
+   select a~lifnr a~name1 a~adrnr b~bukrs from lfa1 as a INNER JOIN lfb1 as b
+   ON a~lifnr = b~lifnr
+   into CORRESPONDING FIELDS OF TABLE gt_lfa1
+   WHERE a~lifnr in S_LIFNR
+     and b~bukrs in S_BUKRS.
+
+   IF GT_LFA1[] is NOT INITIAL.
+
+"address
+  select ADDRNUMBER DATE_FROM NATION CITY1 POST_CODE1 STREET COUNTRY REGION
+  from adrc INTO CORRESPONDING FIELDS OF TABLE gt_adrc FOR ALL ENTRIES IN
+   gt_lfa1 WHERE ADDRNUMBER = gt_lfa1-adrnr.
+
+"email id selection
+   select ADDRNUMBER PERSNUMBER DATE_FROM CONSNUMBER SMTP_ADDR from adr6
+   INTO CORRESPONDING FIELDS OF TABLE gt_adr6 FOR ALL ENTRIES IN
+   gt_lfa1 WHERE ADDRNUMBER = gt_lfa1-adrnr.
+
+"telephone number selection
+   select ADDRNUMBER PERSNUMBER DATE_FROM CONSNUMBER TEL_NUMBER from adr2
+   INTO CORRESPONDING FIELDS OF TABLE gt_adr2 FOR ALL ENTRIES IN
+   gt_lfa1 WHERE ADDRNUMBER = gt_lfa1-adrnr.
+
+"country
+   if gt_adrc[] is NOT INITIAL.
+
+  select * from t005t INTO CORRESPONDING FIELDS OF TABLE GT_T005T
+  FOR ALL ENTRIES IN gt_adrc WHERE SPRAS = 'E'
+                               and LAND1 = gt_adrc-COUNTRY.
+
+"state description
+  select * from t005u INTO CORRESPONDING FIELDS OF TABLE GT_T005u
+  FOR ALL ENTRIES IN gt_adrc WHERE SPRAS = 'E'
+                               and LAND1 = gt_adrc-COUNTRY
+                               and BLAND = gt_adrc-REGION.
+
+   endif.
+
+   endif.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  BUILD_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM BUILD_DATA .
+
+  sort gt_lfa1 by lifnr.
+  sort gt_adrc by ADDRNUMBER.
+  sort gt_adr6 by ADDRNUMBER.
+  sort gt_adr2 by ADDRNUMBER.
+
+  clear : gt_list[], gv_cnt, gv_cnt1.
+
+  loop at gt_lfa1 into gs_lfa1.
+  clear : gs_list.
+
+  gv_cnt = gv_cnt + 1.
+
+  MOVE-CORRESPONDING gs_lfa1 to gs_list.
+  gs_list-sr  = gv_cnt.
+
+"to read the address details
+  clear : gs_adrc.
+  read TABLE gt_adrc into gs_adrc with key ADDRNUMBER = gs_lfa1-adrnr.
+  MOVE-CORRESPONDING gs_adrc to gs_list.
+
+
+"read country description
+  if gs_adrc-COUNTRY is NOT INITIAL.
+  clear : GS_T005T.
+  read TABLE gt_t005t into gs_t005t with key LAND1 = gs_adrc-COUNTRY.
+  gs_list-COUNTRY  = gs_t005t-LANDX50.
+
+  if gs_adrc-REGION is NOT INITIAL.
+  clear : GS_T005U.
+  read TABLE GT_T005U into GS_T005U with key LAND1 = gs_adrc-COUNTRY
+                                             BLAND = gs_adrc-REGION.
+  gs_list-STATE = GS_T005U-BEZEI.
+
+  endif.
+
+  endif.
+
+"to read email address
+  clear : GV_CNT1.
+  loop at gt_adr6 into gs_adr6 WHERE ADDRNUMBER = gs_lfa1-ADRNR.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  if gv_cnt1 = 1.
+     gs_list-EMAIL1 = gs_adr6-SMTP_ADDR.
+  elseif gv_cnt1 = 2.
+     gs_list-email2 = gs_adr6-SMTP_ADDR.
+  else.
+     exit.
+  endif.
+
+  clear : gs_adr6.
+  endloop.
+
+"to read telephone numbers.
+  clear : GV_CNT1.
+  loop at gt_adr2 into gs_adr2 WHERE ADDRNUMBER = gs_lfa1-ADRNR.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  if gv_cnt1 = 1.
+     gs_list-MOBILE1 = gs_adr2-TEL_NUMBER.
+  elseif gv_cnt1 = 2.
+     gs_list-mobile2 = gs_adr2-TEL_NUMBER.
+  else.
+     exit.
+  endif.
+
+  clear : gs_adr2.
+  endloop.
+
+  append gs_list to gt_list.
+
+  clear : gs_lfa1.
+  endloop.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*&      Form  DISPLAY_OUTPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM DISPLAY_OUTPUT .
+
+  sort gt_list by SR.
+
+*  cl_demo_output=>display( gt_list ).
+
+  loop at gt_list into gs_list.
+
+  AT FIRST.
+  write: / 'Sr No', 15 'Vendor ID', 30 'Vendor Name', 40 'Company Code', 50 'Steet', 60 'City', 70 'Postal Code', 80 'Country', 90 'State'.
+  write : 110 'Email1', 140 'Email2', 165 'Mobile1', 180 'Mobile2'.
+  uline.
+  ENDAT.
+
+  write: / gs_list-sr, 15 gs_list-lifnr HOTSPOT, 30 gs_list-name1, 40 gs_list-BUKRS, 50 gs_list-STREET, 60 gs_list-CITY1, 70 gs_list-POST_CODE1.
+  write : 80 gs_list-COUNTRY, 90 gs_list-STATE.
+  write : 110 gs_list-EMAIL1, 140 gs_list-EMAIL2, 165 gs_list-MOBILE1, 180 gs_list-MOBILE2.
+  uline.
+
+  clear : gs_list.
+  endloop.
+
+
+ENDFORM.
