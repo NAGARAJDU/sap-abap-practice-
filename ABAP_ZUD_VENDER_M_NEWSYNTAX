@@ -1,0 +1,55 @@
+REPORT ZUD_VENDOR_MASTER_NEW_ABAP_SYN.
+
+
+
+data : sd_lifnr type lfa1-lifnr,
+       sd_bukrs type lfb1-bukrs.
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_lifnr for SD_LIFNR,
+                   s_bukrs for SD_BUKRS NO INTERVALS NO-EXTENSION.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+     PERFORM get_data.
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*&      Form  GET_DATA
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+*  -->  p1        text
+*  <--  p2        text
+*----------------------------------------------------------------------*
+FORM GET_DATA .
+
+       select a~lifnr, a~name1,                          "from lfa1
+              b~bukrs,                                   "lfb1
+              c~STREET, c~CITY1, c~POST_CODE1,             "adrc
+              d~smtp_addr as email,                               "adr6
+              e~tel_number as mobile,                                "adr2
+              f~LANDX50 as country,                      "t005t
+              g~BEZEI as state                           "t005u
+              from lfa1 as a INNER JOIN lfb1 as b on a~lifnr = b~lifnr
+              left OUTER JOIN adrc as c on c~ADDRNUMBER = a~adrnr
+              left OUTER JOIN adr6 as d on d~ADDRNUMBER = a~adrnr
+              left OUTER JOIN adr2 as e on e~ADDRNUMBER = a~adrnr
+              left OUTER JOIN t005t as f on f~SPRAS = @sy-LANGU
+                                         and f~LAND1   = c~COUNTRY
+              left OUTER JOIN t005u as g on g~SPRAS    = @sy-LANGU
+                                         and g~LAND1   = c~COUNTRY
+                                         and g~BLAND   = c~REGION
+              into TABLE @data(gt_list)
+              WHERE a~lifnr in @S_LIFNR
+                and b~bukrs in @S_BUKRS.
+
+      sort gt_list by lifnr email mobile.
+      delete ADJACENT DUPLICATES FROM gt_list COMPARING lifnr.
+
+      CL_DEMO_OUTPUT=>display( gt_list ).
+
+
+
+ENDFORM.
