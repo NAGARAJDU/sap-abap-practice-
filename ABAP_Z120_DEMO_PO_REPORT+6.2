@@ -1,0 +1,645 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_PO_REPORT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT z120_demo_po_report.
+
+TABLES : ekko, ekpo.
+
+TYPES : BEGIN OF tp_list,
+          sel,
+*from header table ekko
+          ebeln TYPE ebeln,
+          bsart TYPE ekko-bsart,
+          aedat TYPE erdat,
+          ernam TYPE ernam,
+          lifnr TYPE elifn,
+          "vendor name lfa1
+          name1 TYPE name1_gp,
+          "from item table ekpo
+          ebelp TYPE ebelp,
+          txz01 TYPE txz01,
+          matnr TYPE matnr,
+          menge TYPE bstmg,
+          meins TYPE bstme,
+          netpr TYPE bprei,
+          netwr TYPE bwert,
+        END OF tp_list,
+
+        BEGIN OF tp_ernam,
+          ernam TYPE ekko-ernam,
+        END OF tp_ernam.
+
+DATA : gt_list  TYPE STANDARD TABLE OF tp_list,
+       gs_list  TYPE tp_list,
+       gt_lfa1  TYPE STANDARD TABLE OF lfa1,
+       gs_lfa1  TYPE lfa1,
+       gt_eket  TYPE STANDARD TABLE OF eket,
+       gs_eket  TYPE eket,
+       gt_ernam TYPE STANDARD TABLE OF tp_ernam,
+       gs_ernam TYPE tp_ernam.
+
+
+DATA : it_return LIKE ddshretval OCCURS 0 WITH HEADER LINE.
+
+CONSTANTS : c_bstyp TYPE ekko-bstyp VALUE 'F'.
+
+
+"alv fieldcatalog
+DATA : gt_fcat    TYPE lvc_t_fcat,
+       gs_fcat    LIKE LINE OF gt_fcat,
+       gs_layout  TYPE lvc_s_layo,
+       gs_variant TYPE disvariant,
+       gs_grid    TYPE lvc_s_glay,
+       gv_cnt     TYPE i.
+
+DATA : gt_fcat1    TYPE lvc_t_fcat,
+       gs_fcat1    LIKE LINE OF gt_fcat,
+       gs_layout1  TYPE lvc_s_layo,
+       gs_variant1 TYPE disvariant,
+       gs_grid1    TYPE lvc_s_glay,
+       gv_cnt1     TYPE i.
+
+DATA : t_header        TYPE slis_t_listheader,
+       wa_header       TYPE slis_listheader,
+
+       todays_dt(10),
+       todays_time(10).
+
+
+
+SELECTION-SCREEN BEGIN OF BLOCK b1 WITH FRAME TITLE TEXT-001.
+
+  SELECT-OPTIONS : s_ebeln FOR ekko-ebeln,
+                   s_aedat FOR ekko-aedat,
+                   s_bsart FOR ekko-bsart MODIF ID dis,
+                   s_ernam FOR ekko-ernam NO INTERVALS NO-EXTENSION,
+                   s_matnr FOR ekpo-matnr.
+  SELECTION-SCREEN SKIP.
+  PARAMETERS : r_r1 RADIOBUTTON GROUP grp USER-COMMAND cmd,
+               r_r2 RADIOBUTTON GROUP grp,
+               r_r3 RADIOBUTTON GROUP grp.
+SELECTION-SCREEN END OF BLOCK b1.
+
+INITIALIZATION.
+
+  s_aedat-sign    = 'I'.
+  s_aedat-option  = 'BT'.
+  s_aedat-low     = sy-datum - 365.
+  s_aedat-high    = sy-datum.
+  APPEND s_aedat.
+
+  IF r_r1 IS INITIAL AND r_r2 IS INITIAL AND r_r3 IS INITIAL.
+    r_r1 = 'X'.
+  ENDIF.
+
+AT SELECTION-SCREEN.
+
+*   if s_ernam-low is INITIAL.
+*      MESSAGE 'Enter the created By' TYPE 'E'.
+*   endif.
+
+
+AT SELECTION-SCREEN OUTPUT.
+
+  IF r_r1 IS NOT INITIAL.
+    CLEAR : s_bsart[].
+  ELSEIF r_r2 IS NOT INITIAL.
+    CLEAR : s_bsart[].
+
+    s_bsart-sign   = 'I'.
+    s_bsart-option = 'EQ'.
+    s_bsart-low    = 'NB'.
+    APPEND s_bsart.
+
+  ELSEIF r_r3 IS NOT INITIAL.
+
+    CLEAR : s_bsart[].
+
+    s_bsart-sign   = 'I'.
+    s_bsart-option = 'EQ'.
+    s_bsart-low    = 'FO'.
+    APPEND s_bsart.
+
+    s_bsart-sign   = 'I'.
+    s_bsart-option = 'EQ'.
+    s_bsart-low    = 'UB'.
+    APPEND s_bsart.
+  ENDIF.
+
+
+  LOOP AT SCREEN.
+
+    IF r_r1 IS INITIAL AND screen-group1 = 'DIS'.
+      screen-input = 0.
+      MODIFY SCREEN.
+    ENDIF.
+
+
+  ENDLOOP.
+
+AT SELECTION-SCREEN ON VALUE-REQUEST FOR s_ernam-low.
+
+  PERFORM get_users.
+
+
+START-OF-SELECTION .
+  PERFORM get_data.
+  PERFORM build_data.
+  PERFORM display_data.
+
+
+
+
+
+END-OF-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_data .
+
+  SELECT a~ebeln a~bsart a~aedat a~ernam a~lifnr
+         b~ebelp b~txz01 b~matnr b~menge b~meins b~netpr b~netwr
+  FROM ekko AS a INNER JOIN ekpo AS b ON a~ebeln = b~ebeln
+  INTO CORRESPONDING FIELDS OF TABLE gt_list
+  WHERE a~ebeln IN s_ebeln
+    AND a~bsart IN s_bsart
+    AND a~aedat IN s_aedat
+    AND a~bstyp = c_bstyp
+    AND a~ernam IN s_ernam
+    AND b~matnr IN s_matnr.
+
+  SORT gt_list BY lifnr.
+
+  IF gt_list[] IS NOT INITIAL.
+
+    SELECT * FROM lfa1 INTO TABLE gt_lfa1
+    FOR ALL ENTRIES IN gt_list WHERE lifnr = gt_list-lifnr.
+
+
+
+  ENDIF.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form build_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM build_data .
+
+  LOOP AT gt_list INTO gs_list.
+
+    CLEAR : gs_lfa1.
+    READ TABLE gt_lfa1 INTO gs_lfa1 WITH KEY lifnr = gs_list-lifnr.
+    IF sy-subrc = 0.
+      gs_list-name1   = gs_lfa1-name1.
+      MODIFY gt_list FROM gs_list TRANSPORTING name1.
+
+    ENDIF.
+
+
+    CLEAR : gs_list.
+  ENDLOOP.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form display_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM display_data .
+
+  CLEAR : gv_cnt, gt_fcat[], gs_fcat.
+
+  gs_layout-col_opt    =  'X'.
+  gs_layout-box_fname  =  'SEL'.
+
+  gs_variant-report    = sy-repid.
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'EBELN'.
+  gs_fcat-coltext      = 'PO Number'.
+  gs_fcat-hotspot      = 'X'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'AEDAT'.
+  gs_fcat-coltext      = 'PO Date'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'ERNAM'.
+  gs_fcat-coltext      = 'Created By'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'BSART'.
+  gs_fcat-coltext      = 'Doc. Type'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'LIFNR'.
+  gs_fcat-coltext      = 'Vendor ID'.
+  gs_fcat-no_zero      =  'X'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'NAME1'.
+  gs_fcat-coltext      = 'Vendor Name'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'EBELP'.
+  gs_fcat-coltext      = 'Line item'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'TXZ01'.
+  gs_fcat-coltext      = 'Material text'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'MATNR'.
+  gs_fcat-coltext      = 'Material'.
+  gs_fcat-no_zero      =  'X'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'MENGE'.
+  gs_fcat-coltext      = 'Quantity'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'MEINS'.
+  gs_fcat-coltext      = 'UOM'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'NETPR'.
+  gs_fcat-coltext      = 'Net Price'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+  gv_cnt = gv_cnt + 1.
+  gs_fcat-col_pos      =  gv_cnt.
+  gs_fcat-fieldname    = 'NETWR'.
+  gs_fcat-coltext      = 'Total Amount'.
+  APPEND gs_fcat TO gt_fcat.
+  CLEAR : gs_fcat.
+
+
+  CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+    EXPORTING
+*     I_INTERFACE_CHECK        = ' '
+*     I_BYPASSING_BUFFER       =
+*     I_BUFFER_ACTIVE          =
+      i_callback_program       = sy-repid
+      i_callback_pf_status_set = 'PF_STATUS'
+      i_callback_user_command  = 'USER_COMMAND'
+      i_callback_top_of_page   = 'TOP-OF-PAGE'
+*     I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*     I_CALLBACK_HTML_END_OF_LIST       = ' '
+*     I_STRUCTURE_NAME         =
+*     I_BACKGROUND_ID          = ' '
+*     I_GRID_TITLE             =
+*     I_GRID_SETTINGS          =
+      is_layout_lvc            = gs_layout
+      it_fieldcat_lvc          = gt_fcat[]
+*     IT_EXCLUDING             =
+*     IT_SPECIAL_GROUPS_LVC    =
+*     IT_SORT_LVC              =
+*     IT_FILTER_LVC            =
+*     IT_HYPERLINK             =
+*     IS_SEL_HIDE              =
+      i_default                = 'X'
+      i_save                   = 'A'
+      is_variant               = gs_variant
+*     IT_EVENTS                =
+*     IT_EVENT_EXIT            =
+*     IS_PRINT_LVC             =
+*     IS_REPREP_ID_LVC         =
+*     I_SCREEN_START_COLUMN    = 0
+*     I_SCREEN_START_LINE      = 0
+*     I_SCREEN_END_COLUMN      = 0
+*     I_SCREEN_END_LINE        = 0
+*     I_HTML_HEIGHT_TOP        =
+*     I_HTML_HEIGHT_END        =
+*     IT_ALV_GRAPHICS          =
+*     IT_EXCEPT_QINFO_LVC      =
+*     IR_SALV_FULLSCREEN_ADAPTER        =
+*   IMPORTING
+*     E_EXIT_CAUSED_BY_CALLER  =
+*     ES_EXIT_CAUSED_BY_USER   =
+    TABLES
+      t_outtab                 = gt_list[]
+    EXCEPTIONS
+      program_error            = 1
+      OTHERS                   = 2.
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+
+
+
+
+ENDFORM.
+
+FORM pf_status USING rt_extab TYPE slis_t_extab.
+
+*     set PF-STATUS 'ZPF1'.
+  SET PF-STATUS 'ZSTANDARD'.
+
+
+ENDFORM.
+
+FORM user_command USING r_ucomm LIKE sy-ucomm
+                        rs_selfield TYPE slis_selfield.
+
+
+  CASE r_ucomm.
+
+    WHEN '&IC1'.
+
+      READ TABLE gt_list INTO gs_list INDEX rs_selfield-tabindex.
+
+      IF gs_list-ebeln IS NOT INITIAL and rs_selfield-fieldname = 'EBELN'.
+
+        SET PARAMETER ID 'BES' FIELD gs_list-ebeln.
+
+        CALL TRANSACTION 'ME23N' AND SKIP FIRST SCREEN.
+
+
+      elseif gs_list-ebeln is not INITIAL.
+
+
+      SUBMIT Z120_DEMO_PO_REPORT with s_ebeln BETWEEN gs_list-ebeln and gs_list-ebeln
+                                 with r_r1 = 'X' AND RETURN.
+
+
+*      clear : gt_eket.
+*
+*      select * from eket into TABLE gt_eket  WHERE ebeln = gs_list-ebeln.
+*
+*      perform display_data_eket.
+
+
+
+      ENDIF.
+
+    WHEN 'BACK'.
+      SET SCREEN 0.
+
+
+  ENDCASE.
+
+  CLEAR : sy-ucomm.
+
+
+ENDFORM.
+
+FORM top-of-page.
+
+  WRITE : sy-datum TO todays_dt.
+  WRITE : sy-uzeit TO todays_time.
+
+  CLEAR : t_header[].
+
+  wa_header-typ       =  'H'.
+  wa_header-info      = 'Purchase order details'.
+  APPEND wa_header TO t_header.
+  CLEAR : wa_header.
+
+  wa_header-typ     = 'S'.
+  wa_header-key     = 'Report run date'.
+  wa_header-info    = todays_dt.
+  APPEND wa_header TO t_header.
+  CLEAR : wa_header.
+
+  wa_header-typ     = 'S'.
+  wa_header-key     = 'Report run time'.
+  wa_header-info    = todays_time.
+  APPEND wa_header TO t_header.
+  CLEAR : wa_header.
+
+  CALL FUNCTION 'REUSE_ALV_COMMENTARY_WRITE'
+    EXPORTING
+      it_list_commentary = t_header
+*     I_LOGO             = 'ENJOYSAP_LOGO'
+      i_logo             = 'ZKALVLOGO'
+*     I_END_OF_LIST_GRID =
+*     I_ALV_FORM         =
+    .
+
+
+
+
+
+ENDFORM.
+
+*&---------------------------------------------------------------------*
+*& Form get_users
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_users .
+
+  CLEAR : gt_ernam[].
+
+  gs_ernam-ernam = 'ZAFARK'.
+  APPEND gs_ernam TO gt_ernam.
+  CLEAR : gs_ernam.
+
+  gs_ernam-ernam = 'DEVELOPER'.
+  APPEND gs_ernam TO gt_ernam.
+  CLEAR : gs_ernam.
+
+  gs_ernam-ernam = 'INTEGRATION'.
+  APPEND gs_ernam TO gt_ernam.
+  CLEAR : gs_ernam.
+
+  CALL FUNCTION 'F4IF_INT_TABLE_VALUE_REQUEST'
+    EXPORTING
+*     DDIC_STRUCTURE  = ' '
+      retfield        = 'ERNAM'
+*     PVALKEY         = ' '
+*     DYNPPROG        = sy-repid
+*     DYNPNR          = ' '
+*     DYNPROFIELD     = ' '
+*     STEPL           = 0
+*     WINDOW_TITLE    =
+*     VALUE           = ' '
+      value_org       = 'S'
+*     MULTIPLE_CHOICE = ' '
+*     DISPLAY         = ' '
+*     CALLBACK_PROGRAM       = ' '
+*     CALLBACK_FORM   = ' '
+*     CALLBACK_METHOD =
+*     MARK_TAB        =
+* IMPORTING
+*     USER_RESET      =
+    TABLES
+      value_tab       = gt_ernam
+*     FIELD_TAB       =
+      return_tab      = it_return
+*     DYNPFLD_MAPPING =
+    EXCEPTIONS
+      parameter_error = 1
+      no_values_found = 2
+      OTHERS          = 3.
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+  WRITE it_return-fieldval TO s_ernam-low.
+  REFRESH gt_ernam.
+
+
+
+ENDFORM.
+
+
+FORM display_data_eket.
+
+  CLEAR : gv_cnt1, gt_fcat1[], gs_fcat1.
+
+  gs_layout1-col_opt    =  'X'.
+  gs_variant1-report    = sy-repid.
+
+
+  gv_cnt1 = gv_cnt1 + 1.
+  gs_fcat1-col_pos      =  gv_cnt1.
+  gs_fcat1-fieldname    = 'EBELN'.
+  gs_fcat1-coltext      = 'PO Number'.
+  gs_fcat1-hotspot      = 'X'.
+  APPEND gs_fcat1 TO gt_fcat1.
+  CLEAR : gs_fcat1.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  gs_fcat1-col_pos      =  gv_cnt1.
+  gs_fcat1-fieldname    = 'EBELP'.
+  gs_fcat1-coltext      = 'Line item'.
+  APPEND gs_fcat1 TO gt_fcat1.
+  CLEAR : gs_fcat1.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  gs_fcat1-col_pos      =  gv_cnt1.
+  gs_fcat1-fieldname    = 'ETENR'.
+  gs_fcat1-coltext      = 'Sch. Line item'.
+  APPEND gs_fcat1 TO gt_fcat1.
+  CLEAR : gs_fcat1.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  gs_fcat1-col_pos      =  gv_cnt1.
+  gs_fcat1-fieldname    = 'EINDT'.
+  gs_fcat1-coltext      = 'Sch. Line Date'.
+  APPEND gs_fcat1 TO gt_fcat1.
+  CLEAR : gs_fcat1.
+
+  gv_cnt1 = gv_cnt1 + 1.
+  gs_fcat1-col_pos      =  gv_cnt1.
+  gs_fcat1-fieldname    = 'MENGE'.
+  gs_fcat1-coltext      = 'Qty.'.
+  APPEND gs_fcat1 TO gt_fcat1.
+  CLEAR : gs_fcat1.
+
+
+ CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+    EXPORTING
+*     I_INTERFACE_CHECK        = ' '
+*     I_BYPASSING_BUFFER       =
+*     I_BUFFER_ACTIVE          =
+      i_callback_program       = sy-repid
+*      i_callback_pf_status_set = 'PF_STATUS'
+*      i_callback_user_command  = 'USER_COMMAND'
+*      i_callback_top_of_page   = 'TOP-OF-PAGE'
+*     I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*     I_CALLBACK_HTML_END_OF_LIST       = ' '
+*     I_STRUCTURE_NAME         =
+*     I_BACKGROUND_ID          = ' '
+*     I_GRID_TITLE             =
+*     I_GRID_SETTINGS          =
+      is_layout_lvc            = gs_layout1
+      it_fieldcat_lvc          = gt_fcat1[]
+*     IT_EXCLUDING             =
+*     IT_SPECIAL_GROUPS_LVC    =
+*     IT_SORT_LVC              =
+*     IT_FILTER_LVC            =
+*     IT_HYPERLINK             =
+*     IS_SEL_HIDE              =
+      i_default                = 'X'
+      i_save                   = 'A'
+      is_variant               = gs_variant1
+*     IT_EVENTS                =
+*     IT_EVENT_EXIT            =
+*     IS_PRINT_LVC             =
+*     IS_REPREP_ID_LVC         =
+*     I_SCREEN_START_COLUMN    = 0
+*     I_SCREEN_START_LINE      = 0
+*     I_SCREEN_END_COLUMN      = 0
+*     I_SCREEN_END_LINE        = 0
+*     I_HTML_HEIGHT_TOP        =
+*     I_HTML_HEIGHT_END        =
+*     IT_ALV_GRAPHICS          =
+*     IT_EXCEPT_QINFO_LVC      =
+*     IR_SALV_FULLSCREEN_ADAPTER        =
+*   IMPORTING
+*     E_EXIT_CAUSED_BY_CALLER  =
+*     ES_EXIT_CAUSED_BY_USER   =
+    TABLES
+      t_outtab                 = gt_eket[]
+    EXCEPTIONS
+      program_error            = 1
+      OTHERS                   = 2.
+  IF sy-subrc <> 0.
+* Implement suitable error handling here
+  ENDIF.
+
+endform.
