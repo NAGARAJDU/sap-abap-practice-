@@ -1,0 +1,477 @@
+*&---------------------------------------------------------------------*
+*& Report ZFI_PAYMENT_FOLLOWUP
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZFI_PAYMENT_FOLLOWUP.
+
+tables : BSID, KNA1.
+
+INCLUDE <icon>.
+
+types : begin of tp_list,
+         sel,
+         KUNNR      type kna1-kunnr,
+         NAME1       type kna1-name1,
+         TELNR_LONG type adr2-TELNR_LONG,
+        BUKRS       type bsid-bukrs,
+        BELNR       type bsid-BELNR,
+        GJAHR       type bsid-GJAHR,
+        augbl       type bsid-augbl,
+        BUDAT       type bsid-BUDAT,
+        ZFBDT       type bsid-ZFBDT,
+        due_date    type sy-datum,
+        BLART       type bsid-blart,
+        XBLNR       type bsid-XBLNR,
+        DMBTR       type bsid-dmbtr,
+        WAERS       type bsid-WAERS,
+        remarks     type char100,
+        pdate       type sy-datum,
+        status(4),
+        approve,
+        end of tp_list.
+
+data : gs_list type tp_list,
+       gt_list type STANDARD TABLE OF tp_list,
+       gt_list1 type STANDARD TABLE OF tp_list,
+       gs_remarks type zfipay_remarks.
+
+
+"alv fieldcatalog
+  data : gt_fcat type lvc_t_fcat,
+         gs_fcat like LINE OF gt_fcat,
+         gs_layout type lvc_s_layo,
+         gs_variant type disvariant,
+         gs_grid type lvc_s_glay,
+         gv_cnt type i.
+
+
+SELECTION-SCREEN begin of BLOCK b1 WITH FRAME TITLE text-001.
+  select-OPTIONS : s_kunnr for bsid-kunnr,
+                   s_blart for bsid-blart DEFAULT 'RV',
+                   s_bukrs for bsid-bukrs.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+
+     perform get_build_data.
+     PERFORM display_data.
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_build_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_build_data .
+
+"select open line items from BSID
+  select bukrs, kunnr, AUGBL, gjahr, belnr, budat, waers, xblnr, blart, dmbtr, ZFBDT, zbd1t
+         from bsid into TABLE @data(gt_bsid)
+         WHERE bukrs in @s_bukrs
+           and kunnr in @s_kunnr
+           and blart in @s_blart.
+
+"cleared line items
+  select bukrs, kunnr, AUGBL, gjahr, belnr, budat, waers, xblnr, blart, dmbtr, ZFBDT, zbd1t
+         from bsad appending TABLE @gt_bsid
+         WHERE bukrs in @s_bukrs
+           and kunnr in @s_kunnr
+           and blart in @s_blart.
+
+  IF GT_BSID[] is NOT INITIAL.
+
+     sort GT_BSID by kunnr.
+
+  select kunnr, name1, adrnr from kna1 into TABLE @data(gt_kna1)
+  FOR ALL ENTRIES IN @GT_BSID WHERE kunnr = @GT_BSID-kunnr.
+
+   IF GT_KNA1[] is NOT INITIAL.
+
+  sort gt_kna1 by adrnr.
+
+  select * from adr2 into TABLE @data(gt_adr2)
+  FOR ALL ENTRIES IN @gt_kna1 WHERE addrnumber = @gt_kna1-adrnr.
+
+
+   endif.
+
+  sort GT_BSID by bukrs belnr gjahr.
+
+  "select the existing remarks
+  select * from ZFIPAY_REMARKS into TABLE @data(gt_remarks)
+  FOR ALL ENTRIES IN @gt_bsid WHERE bukrs = @gt_bsid-bukrs
+                                and belnr = @gt_bsid-belnr
+                                and gjahr = @gt_bsid-gjahr.
+
+
+  sort gt_kna1 by kunnr.
+  sort gt_adr2 by addrnumber.
+
+  clear : gt_list[], gs_list.
+
+  loop at gt_bsid ASSIGNING FIELD-SYMBOL(<fs>).
+
+  clear : gs_list.
+          MOVE-CORRESPONDING <fs> to gs_list.
+
+"customer name
+
+   try.
+     data(gs_kna1) = gt_kna1[ kunnr = <fs>-kunnr ].
+   CATCH cx_root.
+     clear : gs_kna1.
+   endtry.
+
+   try.
+     data(gs_adr2) = gt_adr2[ addrnumber = gs_kna1-adrnr ].
+   catch cx_root.
+   endtry.
+
+
+    try.
+     data(gs_remarks) = gt_remarks[ bukrs = <fs>-bukrs belnr = <fs>-belnr gjahr = <fs>-gjahr ].
+    CATCH cx_root.
+    ENDTRY.
+
+
+    gs_list-due_date = <fs>-zfbdt + <fs>-zbd1t.
+    gs_list-name1    = gs_kna1-name1.
+    gs_list-telnr_long = gs_adr2-telnr_long.
+
+    gs_list-remarks   = gs_remarks-remarks.
+    gs_list-pdate     = gs_remarks-pdate.
+    gs_list-AUGBL     = <fs>-augbl.
+
+    if <fs>-AUGBL is INITIAL.
+       gs_list-status = ICON_RED_LIGHT.
+    else.
+       gs_list-status = ICON_GREEN_LIGHT.
+    endif.
+
+    if <fs>-blart = 'DZ'.
+       gs_list-status = ICON_YELLOW_LIGHT.
+    endif.
+
+
+*    gs_list-red     = icon_red_light.
+*    gs_list-green   = ICON_GREEN_LIGHT.
+*    gs_list-yellow  = ICON_YELLOW_LIGHT.
+
+    append gs_list to gt_list.
+
+
+   clear : gs_list, gs_kna1, gs_adr2, gs_remarks.
+  endloop.
+
+    GT_LIST1[] = GT_LIST[].
+
+
+  else.
+     message 'No data found' TYPE 'I'.
+
+  endif.
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form display_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM display_data .
+
+   clear : gv_cnt, gt_fcat[], gs_fcat.
+
+   gs_layout-col_opt    =  'X'.
+   gs_layout-box_fname  =  'SEL'.
+
+   gs_variant-report    = sy-repid.
+
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'KUNNR'.
+   gs_fcat-coltext      = 'Customer ID'.
+   gs_fcat-hotspot      = 'X'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'NAME1'.
+   gs_fcat-coltext      = 'Customer Name'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'TELNR_LONG'.
+   gs_fcat-coltext      = 'Mobile Number'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'BUKRS'.
+   gs_fcat-coltext      = 'Company code'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'BELNR'.
+   gs_fcat-coltext      = 'Document Number'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'GJAHR'.
+   gs_fcat-coltext      = 'Fiscal Year'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'BUKRS'.
+   gs_fcat-coltext      = 'Company code'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'BUDAT'.
+   gs_fcat-coltext      = 'Invoice date'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'DUE_DATE'.
+   gs_fcat-coltext      = 'Due Date'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'BLART'.
+   gs_fcat-coltext      = 'Doc. Type'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'XBLNR'.
+   gs_fcat-coltext      = 'Reference'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'DMBTR'.
+   gs_fcat-coltext      = 'Invoice Amount'.
+   gs_fcat-emphasize    = 'C5'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'WAERS'.
+   gs_fcat-coltext      = 'Currency'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'AUGBL'.
+   gs_fcat-coltext      = 'Clr. Doc'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'STATUS'.
+   gs_fcat-coltext      = 'Status R/Y/G'.
+   gs_fcat-icon         = 'X'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'APPROVE'.
+   gs_fcat-coltext      = 'Approve'.
+   gs_fcat-checkbox     = 'X'.
+   gs_fcat-edit         = 'X'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'REMARKS'.
+   gs_fcat-coltext      = 'Follow Up Remarks'.
+   gs_fcat-edit         = 'X'.
+   gs_fcat-ref_table    = 'ZFIPAY_REMARKS'.
+   gs_fcat-ref_field    = 'REMARKS'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+   gv_cnt = gv_cnt + 1.
+   gs_fcat-col_pos      =  gv_cnt.
+   gs_fcat-fieldname    = 'PDATE'.
+   gs_fcat-coltext      = 'Promise date'.
+   gs_fcat-edit         = 'X'.
+   gs_fcat-ref_table    = 'ZFIPAY_REMARKS'.
+   gs_fcat-ref_field    = 'PDATE'.
+   append gs_fcat to gt_fcat.
+   clear : gs_fcat.
+
+
+CALL FUNCTION 'REUSE_ALV_GRID_DISPLAY_LVC'
+ EXPORTING
+*   I_INTERFACE_CHECK                 = ' '
+*   I_BYPASSING_BUFFER                =
+*   I_BUFFER_ACTIVE                   =
+   I_CALLBACK_PROGRAM                = sy-repid
+*   I_CALLBACK_PF_STATUS_SET          = ' '
+   I_CALLBACK_USER_COMMAND           = 'USER_COMMAND'
+*   I_CALLBACK_TOP_OF_PAGE            = ' '
+*   I_CALLBACK_HTML_TOP_OF_PAGE       = ' '
+*   I_CALLBACK_HTML_END_OF_LIST       = ' '
+*   I_STRUCTURE_NAME                  =
+*   I_BACKGROUND_ID                   = ' '
+*   I_GRID_TITLE                      =
+*   I_GRID_SETTINGS                   =
+   IS_LAYOUT_LVC                     = gs_layout
+   IT_FIELDCAT_LVC                   = gt_fcat
+*   IT_EXCLUDING                      =
+*   IT_SPECIAL_GROUPS_LVC             =
+*   IT_SORT_LVC                       =
+*   IT_FILTER_LVC                     =
+*   IT_HYPERLINK                      =
+*   IS_SEL_HIDE                       =
+   I_DEFAULT                         = 'X'
+   I_SAVE                            = 'A'
+   IS_VARIANT                        = gs_variant
+*   IT_EVENTS                         =
+*   IT_EVENT_EXIT                     =
+*   IS_PRINT_LVC                      =
+*   IS_REPREP_ID_LVC                  =
+*   I_SCREEN_START_COLUMN             = 0
+*   I_SCREEN_START_LINE               = 0
+*   I_SCREEN_END_COLUMN               = 0
+*   I_SCREEN_END_LINE                 = 0
+*   I_HTML_HEIGHT_TOP                 =
+*   I_HTML_HEIGHT_END                 =
+*   IT_ALV_GRAPHICS                   =
+*   IT_EXCEPT_QINFO_LVC               =
+* IMPORTING
+*   E_EXIT_CAUSED_BY_CALLER           =
+*   ES_EXIT_CAUSED_BY_USER            =
+  TABLES
+    t_outtab                          = gt_list[]
+ EXCEPTIONS
+   PROGRAM_ERROR                     = 1
+   OTHERS                            = 2
+          .
+IF sy-subrc <> 0.
+* Implement suitable error handling here
+ENDIF.
+
+
+ENDFORM.
+
+
+
+form USER_COMMAND USING r_ucomm like sy-ucomm
+                        rs_selfield type slis_selfield.
+
+
+  case sy-ucomm.
+
+  WHEN '&DATA_SAVE'.
+
+       perform save_data.
+
+
+
+ endcase.
+
+
+     rs_selfield-row_stable  = 'X'.
+     rs_selfield-col_stable  = 'X'.
+     rs_selfield-refresh     = 'X'.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form save_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM save_data .
+
+    data : lv_flag type flag,
+           gs_log type ZFIPAY_REMARKS_L.
+
+
+    loop at gt_list ASSIGNING FIELD-SYMBOL(<fs1>).
+
+    read TABLE gt_list1 into gs_list with key bukrs = <fs1>-bukrs
+                                              belnr = <fs1>-belnr
+                                              gjahr = <fs1>-gjahr.
+
+    if sy-subrc = 0 and ( <fs1>-remarks ne gs_list-remarks  or
+                          <fs1>-pdate ne gs_list-pdate ).
+
+
+      clear : gs_log.
+      select SINGLE * from zfipay_remarks
+      into CORRESPONDING FIELDS OF gs_log WHERE  bukrs = <fs1>-bukrs
+                                            and  belnr = <fs1>-belnr
+                                            and  gjahr = <fs1>-gjahr.
+
+      if sy-subrc = 0.
+         gs_log-modby   = sy-uname.
+         gs_log-modon   = sy-datum.
+         gs_log-modtime = sy-uzeit.
+         modify zfipay_remarks_l from gs_log.
+      endif.
+
+
+      clear : gs_remarks.
+      MOVE-CORRESPONDING <fs1> to gs_remarks .
+      gs_remarks-createdby  = sy-uname.
+      gs_remarks-createdon  = sy-datum.
+      gs_remarks-time       = sy-uzeit.
+      modify zfipay_remarks from gs_remarks.
+      clear : gs_remarks.
+
+      lv_flag = 'X'.
+
+    endif.
+
+
+    clear : gs_list.
+    endloop.
+
+
+     IF lv_flag = 'X'.
+         MESSAGE 'Record saved successfully' TYPE 'I'.
+     endif.
+
+    gt_list1[] = gt_list[].
+
+   clear : lv_flag.
+ENDFORM.
