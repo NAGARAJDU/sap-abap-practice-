@@ -1,0 +1,295 @@
+*&---------------------------------------------------------------------*
+*& Report ZDEMO_OOPS_ALV
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+REPORT ZDEMO_OOPS_ALV.
+
+tables : vbrk.
+
+data : gt_vbrk type STANDARD TABLE OF vbrk,
+       gs_vbrk type vbrk,
+       gt_vbrp type STANDARD TABLE OF vbrp,
+       gs_vbrp type vbrp.
+
+data : gt_fcat1 type lvc_t_fcat,
+       gs_fcat1 like LINE OF gt_fcat1,
+       gs_layout1 type lvc_s_layo,
+       gs_variant1 type disvariant,
+
+       gt_fcat2 type lvc_t_fcat,
+       gs_fcat2 like LINE OF gt_fcat1,
+       gs_layout2 type lvc_s_layo,
+       gs_variant12 type disvariant.
+
+data : custom1 type REF TO cl_gui_custom_container,
+       grid1 type REF TO cl_gui_alv_grid,
+       custom2 type REF TO cl_gui_custom_container,
+       grid2 type REF TO cl_gui_alv_grid.
+
+
+SELECTION-SCREEN begin of BLOCK b1 with FRAME TITLE text-001.
+  select-OPTIONS : s_vbeln for vbrk-vbeln,
+                   s_fkdat for vbrk-fkdat,
+                   s_kunrg for vbrk-kunrg.
+SELECTION-SCREEN end of BLOCK b1.
+
+
+START-OF-SELECTION.
+
+     perform get_data.
+
+     if gt_vbrk[] is NOT INITIAL.
+
+        call SCREEN 0100.
+
+     else.
+       MESSAGE 'No records found' TYPE 'I'.
+       LEAVE PROGRAM.
+     endif.
+
+
+
+end-of-SELECTION.
+*&---------------------------------------------------------------------*
+*& Form get_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM get_data .
+
+  select * from vbrk into TABLE gt_vbrk WHERE vbeln in s_vbeln
+                                          and fkdat in s_fkdat
+                                          and kunrg in s_kunrg.
+
+  if sy-subrc = 0.
+
+  sort gt_vbrk by vbeln.
+
+  SELECT * FROM VBRP INTO TABLE gt_VBRP FOR ALL ENTRIES IN GT_VBRK
+  WHERE vbeln = gt_vbrk-vbeln.
+
+  endif.
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Module STATUS_0100 OUTPUT
+*&---------------------------------------------------------------------*
+*&
+*&---------------------------------------------------------------------*
+MODULE status_0100 OUTPUT.
+ SET PF-STATUS 'PF1'.
+ SET TITLEBAR 'T1'.
+
+
+   IF custom1 is INITIAL.
+
+   CREATE OBJECT custom1
+    EXPORTING
+      container_name = 'HEADER'.
+
+
+   create OBJECT grid1
+   EXPORTING
+     i_parent = custom1.
+
+
+   perform display_data.
+
+
+   endif.
+
+
+
+   IF custom2 is INITIAL.
+
+   CREATE OBJECT custom2
+    EXPORTING
+      container_name = 'ITEM'.
+
+
+   create OBJECT grid2
+   EXPORTING
+     i_parent = custom2.
+
+
+   perform display_data2.
+
+
+   endif.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  EXIT  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE exit INPUT.
+
+       set SCREEN 0.
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*&      Module  USER_COMMAND_0100  INPUT
+*&---------------------------------------------------------------------*
+*       text
+*----------------------------------------------------------------------*
+MODULE user_command_0100 INPUT.
+
+
+       case sy-ucomm.
+
+        when 'BACK' or 'EXIT' or 'CANCEL'.
+          SET SCREEN 0.
+        ENDCASE.
+
+
+ENDMODULE.
+*&---------------------------------------------------------------------*
+*& Form display_data
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM display_data .
+
+"build field catalog.
+     CALL FUNCTION 'LVC_FIELDCATALOG_MERGE'
+      EXPORTING
+*        I_BUFFER_ACTIVE              =
+        I_STRUCTURE_NAME             = 'VBRK'
+*        I_CLIENT_NEVER_DISPLAY       = 'X'
+*        I_BYPASSING_BUFFER           =
+        I_INTERNAL_TABNAME           = 'GT_VBRK'
+       CHANGING
+         ct_fieldcat                  = gt_fcat1
+      EXCEPTIONS
+        INCONSISTENT_INTERFACE       = 1
+        PROGRAM_ERROR                = 2
+        OTHERS                       = 3
+               .
+     IF sy-subrc <> 0.
+* Implement suitable error handling here
+     ENDIF.
+
+     loop at gt_fcat1 into gs_fcat1 WHERE fieldname = 'KUNRG'.
+          gs_fcat1-emphasize = 'C5'.
+          modify gt_fcat1 from gs_fcat1 TRANSPORTING emphasize.
+     ENDLOOP.
+
+   gs_layout1-col_opt  = 'X'.
+
+
+  CALL METHOD grid1->set_table_for_first_display
+    EXPORTING
+*      i_buffer_active               =
+*      i_bypassing_buffer            =
+*      i_consistency_check           =
+*      i_structure_name              =
+      is_variant                    = gs_variant1
+      i_save                        =  'A'
+      i_default                     = 'X'
+      is_layout                     = gs_layout1
+*      is_print                      =
+*      it_special_groups             =
+*      it_toolbar_excluding          =
+*      it_hyperlink                  =
+*      it_alv_graphics               =
+*      it_except_qinfo               =
+*      ir_salv_adapter               =
+    CHANGING
+      it_outtab                     = GT_VBRK
+      it_fieldcatalog               = gt_fcat1
+*      it_sort                       =
+*      it_filter                     =
+    EXCEPTIONS
+      invalid_parameter_combination = 1
+      program_error                 = 2
+      too_many_lines                = 3
+      others                        = 4
+          .
+  IF sy-subrc <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+
+
+
+
+
+
+ENDFORM.
+*&---------------------------------------------------------------------*
+*& Form display_data2
+*&---------------------------------------------------------------------*
+*& text
+*&---------------------------------------------------------------------*
+*& -->  p1        text
+*& <--  p2        text
+*&---------------------------------------------------------------------*
+FORM display_data2 .
+
+   clear : gt_fcat2[].
+
+"build field catalog.
+     CALL FUNCTION 'LVC_FIELDCATALOG_MERGE'
+      EXPORTING
+*        I_BUFFER_ACTIVE              =
+        I_STRUCTURE_NAME             = 'VBRP'
+*        I_CLIENT_NEVER_DISPLAY       = 'X'
+*        I_BYPASSING_BUFFER           =
+        I_INTERNAL_TABNAME           = 'GT_VBRP'
+       CHANGING
+         ct_fieldcat                  = gt_fcat2
+      EXCEPTIONS
+        INCONSISTENT_INTERFACE       = 1
+        PROGRAM_ERROR                = 2
+        OTHERS                       = 3
+               .
+     IF sy-subrc <> 0.
+* Implement suitable error handling here
+     ENDIF.
+
+   gs_layout2-col_opt  = 'X'.
+
+
+  CALL METHOD grid2->set_table_for_first_display
+    EXPORTING
+*      i_buffer_active               =
+*      i_bypassing_buffer            =
+*      i_consistency_check           =
+*      i_structure_name              =
+      is_variant                    = gs_variant12
+      i_save                        =  'A'
+      i_default                     = 'X'
+      is_layout                     = gs_layout2
+*      is_print                      =
+*      it_special_groups             =
+*      it_toolbar_excluding          =
+*      it_hyperlink                  =
+*      it_alv_graphics               =
+*      it_except_qinfo               =
+*      ir_salv_adapter               =
+    CHANGING
+      it_outtab                     = GT_VBRP
+      it_fieldcatalog               = gt_fcat2
+*      it_sort                       =
+*      it_filter                     =
+    EXCEPTIONS
+      invalid_parameter_combination = 1
+      program_error                 = 2
+      too_many_lines                = 3
+      others                        = 4
+          .
+  IF sy-subrc <> 0.
+*   Implement suitable error handling here
+  ENDIF.
+
+
+ENDFORM.
